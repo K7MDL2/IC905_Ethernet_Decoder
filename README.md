@@ -23,7 +23,7 @@ on the Pi command line
 
 In the directory where your scripts are downloaded run the following command
 
-![alt text]({6CF3CB7B-DFC4-4050-8732-81F6FBB82EC0}.png)
+![{B754341F-3348-4FBB-B484-371D9CDB6658}](https://github.com/user-attachments/assets/89cba467-f293-41b3-bdd3-bd213ed8a367)
 
 Hit Cntl+C to quit.
 
@@ -31,7 +31,8 @@ You can run the command in Cap905 on the command line by itself and alter the fi
 
 This is an example of the output as of 3 Feb 2025
 
-![alt text]({5C5EB2F7-17C9-459D-8585-4E5027287215}.png)
+![{00E975ED-C991-49BE-8E6F-841ED7ED576B}](https://github.com/user-attachments/assets/ec29406c-058c-40f6-b2e2-ede06eab98a7)
+
 
 Visible info include the 
 Band name
