@@ -56,64 +56,65 @@ dial_freq = 0
 offset = 0
             
 try:
-#  for line in f:
-  while 1:
-    line = sys.stdin.readline()
-    i=i+1
-    #print(line)
-    
-    # watch for PTT value changes
-    ptt_state = line.find("0x0120:", 0)
-    if ptt_state != -1:
-        ptt_state = line.find(TX, 17, 19)
-        if ptt_state != -1:
-            print("Band", band_name, " ptt_state is TX ", line)
-            # Call GPIO here
-        
-        ptt_state = line.find(RX, 17, 19)
-        if ptt_state != -1:
-            print("Band", band_name, " ptt_state is RX ", line)
-            # Call GPIO here
-    
-    # Compute what Band we are
-    else:   
-        #Extract the 4 byte frequency value
-        ptt_state = line.find("0x00e0:", 0)
-        result = line.split()
-        #print (result[7],result[8])  
-        
-        # Convert to hex string
-        separator = ""
-        freq_hex_str = separator.join(result)[31:]
-        #print(freq_hex_str)
-        
-        # Flip from big to little endian
-        byte_array = bytes.fromhex(freq_hex_str)
-        little_endian_bytes = byte_array[::-1]
-        little_endian_hex_str = little_endian_bytes.hex()
-        freq = int(little_endian_hex_str, base=16)
-        # Now we have a decimal frequency
-    
-        # Look for band changes
-        if (freq != freq_last):
-            # We changed frequencies - print it and do something with GPIO
-            #print("\nReceived Uncorrected Frequency Value is ", freq)
-            freq_last = freq
-            
-            # Search the Freq_table to see what band these values lie in
-            for band_name in Freq_table:
-                if (freq > Freq_table[band_name]['lower_edge'] and
-                    freq < Freq_table[band_name]['upper_edge'] ):
-                    # Found a band match, print out the goods
-                    offset = Freq_table[band_name]['offset'] 
-                    dial_freq = freq + offset
-                    print("Band = ", band_name, "    Dial Frequency = ", dial_freq,
-                        "\n   Lower edge = ", Freq_table[band_name]['lower_edge'] + offset,
-                           "  Upper edge = ", Freq_table[band_name]['upper_edge'] + offset,
-                            "     Offset = ", offset)
-                    # call GPIO here
-                    break
+	#  for line in f:
+  	while 1:
+		line = sys.stdin.readline()
+		i=i+1
+		#print(line)
+		
+		# watch for PTT value changes
+		ptt_state = line.find("0x0120:", 0)
+		if ptt_state != -1:
+			ptt_state = line.find(TX, 17, 19)
+			if ptt_state != -1:
+				print("Band", band_name, " ptt_state is TX ", line)
+				# Call GPIO here
+			
+			ptt_state = line.find(RX, 17, 19)
+			if ptt_state != -1:
+				print("Band", band_name, " ptt_state is RX ", line)
+				# Call GPIO here
+		
+		# Compute what Band we are
+		else:   
+			#Extract the 4 byte frequency value
+			ptt_state = line.find("0x00e0:", 0)
+			if (ptt_state != -1):
+				result = line.split()
+				#print (result[7],result[8])  
+				
+				# Convert to hex string
+				separator = ""
+				freq_hex_str = separator.join(result)[31:]
+				#print(freq_hex_str)
+				
+				# Flip from big to little endian
+				byte_array = bytes.fromhex(freq_hex_str)
+				little_endian_bytes = byte_array[::-1]
+				little_endian_hex_str = little_endian_bytes.hex()
+				freq = int(little_endian_hex_str, base=16)
+				# Now we have a decimal frequency
+			
+				# Look for band changes
+				if (freq != freq_last):
+					# We changed frequencies - print it and do something with GPIO
+					#print("\nReceived Uncorrected Frequency Value is ", freq)
+					freq_last = freq
+					
+					# Search the Freq_table to see what band these values lie in
+					for band_name in Freq_table:
+						if (freq > Freq_table[band_name]['lower_edge'] and
+							freq < Freq_table[band_name]['upper_edge'] ):
+							# Found a band match, print out the goods
+							offset = Freq_table[band_name]['offset'] 
+							dial_freq = freq + offset
+							print("Band = ", band_name, "    Dial Frequency = ", dial_freq,
+								"\n   Lower edge = ", Freq_table[band_name]['lower_edge'] + offset,
+								"  Upper edge = ", Freq_table[band_name]['upper_edge'] + offset,
+									"     Offset = ", offset)
+							# call GPIO here
+							break
                 
 except KeyboardInterrupt:
- print('Done', i)
+ 	print('Done', i)
 # f.close()
