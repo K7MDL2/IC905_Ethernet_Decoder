@@ -1,0 +1,1 @@
+sudo tcpdump -n -l -i eth0 -A -x dst port 50004 and length == 306 | grep --line-buffered "0x0120:" | stdbuf -oL strings -n10
