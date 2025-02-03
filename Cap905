@@ -1,1 +1,4 @@
-sudo tcpdump -n -l -i eth0 -A -x dst port 50004 and length == 306 | grep --line-buffered "0x0120:" | stdbuf -oL strings -n10
+#sudo tcpdump -n -l -i eth0 -A -x dst port 50004 and length == 306 | grep --line-buffered "0x0120:" | stdbuf -oL strings -n10
+#sudo tcpdump -n -l -i eth0 -A -x dst port 50004 and length == 290 | grep --line-buffered "0x00e0:" | stdbuf -oL strings -n10
+sudo tcpdump -n -l -i eth0 -A -x dst port 50004 and greater 289 | grep --line-buffered -E "0x00e0:|0x0120:" | stdbuf -oL strings -n10
+#sudo tcpdump -n -l -i eth0 -A -x dst port 50004 and greater 289 | grep --line-buffered -E ""0x00e0:&length 224"|"0x0120:&length 306"" | stdbuf -oL strings -n10

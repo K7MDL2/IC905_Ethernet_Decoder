@@ -23,8 +23,21 @@ on the Pi command line
 
 In the directory where your scripts are downloaded run the following command
 
-    ./Cap905 | Proc905
+![alt text]({6CF3CB7B-DFC4-4050-8732-81F6FBB82EC0}.png)
 
 Hit Cntl+C to quit.
 
-YOu can run the command in Cap905 on the command line by itself and alter the filter values to look at other things.
+You can run the command in Cap905 on the command line by itself and alter the filter values to look at other things.
+
+This is an example of the output as of 3 Feb 2025
+
+![alt text]({5C5EB2F7-17C9-459D-8585-4E5027287215}.png)
+
+Visible info include the 
+Band name
+PTT state, RX or TX
+Dial Frequency
+Lower and Upper edges of the band search table
+Offset used to convert the received VFO values to the actual dial frequency
+
+The other hex data messages (indented ones) are from raw packet capture utitily filterted output.  I have not figured out how to shut those off yet.  They are not from the program itself.
