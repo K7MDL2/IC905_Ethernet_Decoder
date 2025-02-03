@@ -41,4 +41,4 @@ Dial Frequency
 Lower and Upper edges of the band search table
 Offset used to convert the received VFO values to the actual dial frequency
 
-The other hex data messages (indented ones) are from raw packet capture utitily filterted output.  I have not figured out how to shut those off yet.  They are not from the program itself.
+The other hex data messages (indented ones) are from raw packet capture utility filtered output.  I have not figured out how to shut those off yet.  They are not from the program itself.   I will be looking to move the TCP sniffing function from the script into the Python program.
