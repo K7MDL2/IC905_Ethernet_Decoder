@@ -16,3 +16,15 @@ The long term setup for me will use 2 managed switches, my main shack 16-port TL
 
 The scripts here are tesated on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.
 
+### Script Usage
+
+Prerequisites are tcpdump utility.  Can do a 'sudo apt install tcpdump' if you are missing it on your system.
+on the Pi command line
+
+In the directory where your scripts are downloaded run the following command
+
+    ./Cap905 | Proc905
+
+Hit Cntl+C to quit.
+
+YOu can run the command in Cap905 on the command line by itself and alter the filter values to look at other things.
