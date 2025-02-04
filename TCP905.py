@@ -35,37 +35,64 @@ import numpy as np
 
 Freq_table = { '2M': {
                     'lower_edge':144000000,
-                    'upper_edge':148000001,
+                    'upper_edge':148000000,
                         'offset':0
                 },
                 '70cm': {
                     'lower_edge':231000000,
-                    'upper_edge':251000001,
+                    'upper_edge':251000000,
                         'offset':199000000 
                 },
                 '23cm': {
                     'lower_edge':351000000,
-                    'upper_edge':411000001,
+                    'upper_edge':411000000,
                         'offset':889000000
                 },
                 '13cm': {
                     'lower_edge':562000000,
-                    'upper_edge':712000001,
+                    'upper_edge':712000000,
                         'offset':1738000000
                 },
                 '6cm': {
                     'lower_edge':963000000,
-                    'upper_edge':1238000001,
+                    'upper_edge':1238000000,
                         'offset':4687000000
                 },
                 '3cm': {
                     'lower_edge':2231000000,
-                    'upper_edge':2251000001,
+                    'upper_edge':2251000000,
                         'offset':99989000000
                 }
             }
     
 band_name = ""    
+    
+# convert little endian bytes to int frequency 
+def get_freq(payload, VFO):
+    freq_hex_dec = np.array([0, 0, 0, 0],dtype=np.uint8)
+    
+    if VFO == 0:
+        vfo = 0x00b8
+    if VFO == 1:
+        vfo = 0x00c4
+        
+    for i in range(0, 4, 1):
+        freq_hex_dec[i] = (payload[vfo+i])
+    #print(freq_hex_dec)
+
+    # Convert from ascii array to binary hex byte string
+    freq_hex_str = freq_hex_dec.tobytes()
+    #print(freq_hex_str)
+    
+    # Flip from little to big endian
+    byte_data = bytes(freq_hex_str)
+    little_endian_bytes = byte_data[::-1]
+    little_endian_hex_str = little_endian_bytes.hex()
+    freq = int(little_endian_hex_str, base=16)
+    #print(freq)
+    # Now we have a decimal frequency
+    return freq
+    
     
 #  Main packet processing function
 def parse_packet(packet):
@@ -76,8 +103,8 @@ def parse_packet(packet):
     offset = 0
     conf.verb = 0
     global band_name
-    freq_hex_dec = np.array([0, 0, 0, 0],dtype=np.uint8)
-    
+    unselected_vfo = 0
+
     """sniff callback function.
     """
     if packet and packet.haslayer('TCP'):
@@ -87,7 +114,7 @@ def parse_packet(packet):
         #print(payload)
         #hexdump(payload)
         payload_len = len(payload)
-        #print("Payload Length = ", payload_len)
+        print("Payload Length = ", payload_len)
         
     # watch for PTT value changes
     ptt_state = -1
@@ -104,56 +131,58 @@ def parse_packet(packet):
             # Call GPIO here
     
     # Compute what Band we are
-    else:   
-        #Extract the 4 byte frequency value
-        freq_len1 = 224   # frequency info
-        freq_len2 = 220   # Band Change info
-        freq_len3 = 304   # Band Change info
-        freq_len4 = 308   # Band Change info
-        if (payload_len == freq_len1 or 
-            payload_len == freq_len2 or
-            payload_len == freq_len3 or
-            payload_len == freq_len4):
-            #hexdump(payload)
-            np.set_printoptions(formatter={'int':hex})
-            #print(payload)
-            
-            #  VFOA is 4 bytes from 0x00b8
-            for i in range(0, 4, 1):
-                freq_hex_dec[i] = (payload[0x00b8+i])
-            #print(freq_hex_dec)
-
-            # Convert from ascii array to binary hex byte string
-            freq_hex_str = freq_hex_dec.tobytes()
-            #print(freq_hex_str)
-            
-            # Flip from big to little endian
-            byte_data = bytes(freq_hex_str)
-            little_endian_bytes = byte_data[::-1]
-            little_endian_hex_str = little_endian_bytes.hex()
-            freq = int(little_endian_hex_str, base=16)
-            #print(freq)
-            # Now we have a decimal frequency
+    #else:   
+    #Extract the 4 byte frequency value
+    freq_len1 = 220   # frequency info
+    freq_len2 = 222   # Band Change info
+    freq_len3 = 224   # Band Change info
+    freq_len4 = 240   # Band Change info
+    freq_len5 = 288   # Band Change info
+    freq_len6 = 304   # Band Change info
+    freq_len7 = 308   # Band Change info
+    if (payload_len == freq_len1 or 
+        payload_len == freq_len2 or
+        payload_len == freq_len3 or
+        payload_len == freq_len4 or
+        payload_len == freq_len5 or
+        payload_len == freq_len6 or
+        payload_len == freq_len7):
+        #hexdump(payload)
+        np.set_printoptions(formatter={'int':hex})
+        #print(payload)
         
-            # Look for band changes
-            if (freq != freq_last):
-                # We changed frequencies - print it and do something with GPIO
-                #print("\nReceived Uncorrected Frequency Value is ", freq)
-                freq_last = freq
-                
-                # Search the Freq_table to see what band these values lie in
-                for band_name in Freq_table:
-                    if (freq > Freq_table[band_name]['lower_edge'] and
-                        freq < Freq_table[band_name]['upper_edge'] ):
-                        # Found a band match, print out the goods
-                        offset = Freq_table[band_name]['offset'] 
-                        dial_freq = freq + offset
-                        print("Band = ", band_name, "    Dial Frequency = ", dial_freq)
-                        #print("  Lower edge = ", Freq_table[band_name]['lower_edge'] + offset,
-                        #      "  Upper edge = ", Freq_table[band_name]['upper_edge'] + offset,
-                        #      "  Offset = ", offset)
-                        # call GPIO here
-                        break
+        vfoa = get_freq(payload, 0)
+        #print("VFO A = ", vfoa)
+        
+        vfob = get_freq(payload, 1)
+        #print("VFO B = ", vfob)
+    
+        # Look for band changes
+        if (vfoa != freq_last):
+            # We changed frequencies - print it and do something with GPIO
+            #print("\nReceived Uncorrected Frequency Value is ", freq)
+            freq_last = vfoa
+            
+            # Search the Freq_table to see what band these values lie in
+            for band_name in Freq_table:
+                if (vfoa >= Freq_table[band_name]['lower_edge'] and
+                    vfoa <= Freq_table[band_name]['upper_edge'] ):
+                    # Found a band match, print out the goods
+                    offset = Freq_table[band_name]['offset'] 
+                    dial_freq = vfoa + offset
+                    
+                if (vfob >= Freq_table[band_name]['lower_edge'] and
+                    vfob <= Freq_table[band_name]['upper_edge'] ):
+                    # Found a band match, print out the goods
+                    offset = Freq_table[band_name]['offset'] 
+                    unselected_vfo = vfob + offset
+                    
+            print("Band = ", band_name, "  Selected VFO = ", dial_freq, "   unselected VFO = ", unselected_vfo)
+            #print("  Lower edge = ", Freq_table[band_name]['lower_edge'] + offset,
+            #      "  Upper edge = ", Freq_table[band_name]['upper_edge'] + offset,
+            #      "  Offset = ", offset)
+            # call GPIO here
+            #break
 
 
 def tcp_sniffer(args):     
