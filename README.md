@@ -29,6 +29,8 @@ Prerequisites are scappy python module.  Can do a 'sudo pip install scappy' if y
 
 This is what is shown on the screen today.   There are many debug lines available to see what lies under the hood but they are commented out to reduce the noise.
 
+![{67DACF6B-8590-45B2-B93E-8A67D13CABB5}](https://github.com/user-attachments/assets/b76bc5c5-f0aa-4e0f-a2f1-2345aad6b0ad)
+
 
 
 ### Script Usage
