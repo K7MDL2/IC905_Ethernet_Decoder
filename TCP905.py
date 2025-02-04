@@ -104,6 +104,8 @@ def parse_packet(packet):
     conf.verb = 0
     global band_name
     unselected_vfo = 0
+    vfoa_band = 0
+    vfob_band = 0
 
     """sniff callback function.
     """
@@ -169,17 +171,19 @@ def parse_packet(packet):
                     vfoa <= Freq_table[band_name]['upper_edge'] ):
                     # Found a band match, print out the goods
                     offset = Freq_table[band_name]['offset'] 
-                    dial_freq = vfoa + offset
+                    vfoa_band = band_name
                     
                 if (vfob >= Freq_table[band_name]['lower_edge'] and
                     vfob <= Freq_table[band_name]['upper_edge'] ):
                     # Found a band match, print out the goods
                     offset = Freq_table[band_name]['offset'] 
                     unselected_vfo = vfob + offset
+                    vfob_band = band_name
                     
-            print("Band = ", band_name, "  Selected VFO = ", dial_freq, "   unselected VFO = ", unselected_vfo)
-            #print("  Lower edge = ", Freq_table[band_name]['lower_edge'] + offset,
-            #      "  Upper edge = ", Freq_table[band_name]['upper_edge'] + offset,
+            print("VFO A Band = ", vfoa_band, "   Selected VFO = ", dial_freq, "   unselected VFO = ", unselected_vfo)
+
+            #print("  Lower edge = ", Freq_table[vfoa_band]['lower_edge'] + offset,
+            #      "  Upper edge = ", Freq_table[vfoa_band]['upper_edge'] + offset,
             #      "  Offset = ", offset)
             # call GPIO here
             #break
