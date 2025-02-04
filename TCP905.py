@@ -114,7 +114,7 @@ def parse_packet(packet):
         #print(payload)
         #hexdump(payload)
         payload_len = len(payload)
-        print("Payload Length = ", payload_len)
+        #print("Payload Length = ", payload_len)
         
     # watch for PTT value changes
     ptt_state = -1
