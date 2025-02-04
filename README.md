@@ -14,6 +14,9 @@ Ports 2 and 3 are in a VLAN so the switch can handle other traffic and not inter
 
 The long term setup for me will use 2 managed switches, my main shack 16-port TL-SG116E managed switch and a smaller 8-port TL-SG108E managed switch.  The 905 VLAN will use 802.1Q VLAN tagging and extend across the 2 switches.  Other devices will be in the shack and on the remote switch but their traffic will be logically isolated.
 
+-----------------------------------------------
+
+### Band Decoder programs
 
 As of Feb 4, 2025 there are now 2 means to extract the PTT and frequency events.  
 
