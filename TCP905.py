@@ -66,6 +66,9 @@ Freq_table = { '2M': {
             }
     
 band_name = ""    
+vfoa_band = ""
+vfob_band = ""
+
     
 # convert little endian bytes to int frequency 
 def get_freq(payload, VFO):
@@ -103,9 +106,10 @@ def parse_packet(packet):
     offset = 0
     conf.verb = 0
     global band_name
+    #selected_vfo = 0
     unselected_vfo = 0
-    vfoa_band = 0
-    vfob_band = 0
+    global vfoa_band
+    global vfob_band
 
     """sniff callback function.
     """
@@ -124,12 +128,12 @@ def parse_packet(packet):
     if (payload_len == ptt_len):
         ptt_state = 0x01 & payload[ptt_len-1]
         #print(ptt_state)
-        if (ptt_state == 1):
-            print("Band = ", band_name, " ptt_state is TX ", ptt_state)
+        if (ptt_state == 1 and vfoa_band != ""):  # do not TX if the band is still unknown (such as at startup)
+            print("VFO A Band = ", vfoa_band, " ptt_state is TX ", ptt_state)
             # Call GPIO here
         #ptt_state = payload.find(RX, 17, 19)
         if (ptt_state == 0):
-            print("Band = ", band_name, " ptt_state is RX ", ptt_state)
+            print("VFO A Band = ", vfoa_band, " ptt_state is RX ", ptt_state)
             # Call GPIO here
     
     # Compute what Band we are
@@ -171,6 +175,7 @@ def parse_packet(packet):
                     vfoa <= Freq_table[band_name]['upper_edge'] ):
                     # Found a band match, print out the goods
                     offset = Freq_table[band_name]['offset'] 
+                    dial_freq = vfoa + offset
                     vfoa_band = band_name
                     
                 if (vfob >= Freq_table[band_name]['lower_edge'] and
@@ -181,13 +186,10 @@ def parse_packet(packet):
                     vfob_band = band_name
                     
             print("VFO A Band = ", vfoa_band, "   Selected VFO = ", dial_freq, "   unselected VFO = ", unselected_vfo)
-
             #print("  Lower edge = ", Freq_table[vfoa_band]['lower_edge'] + offset,
             #      "  Upper edge = ", Freq_table[vfoa_band]['upper_edge'] + offset,
             #      "  Offset = ", offset)
             # call GPIO here
-            #break
-
 
 def tcp_sniffer(args):     
     try:
