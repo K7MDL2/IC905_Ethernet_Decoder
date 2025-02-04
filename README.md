@@ -4,7 +4,7 @@ This is an undocumented protocol so Icom could change it in future firmware upda
 
 The normal supported RF Unit connection is a point to point ethernet cable using the RF Unit ethernet port.  There is another ethernet port for normal network control.
 
-My test setup has 3 connection at minimum.  
+My test setup has 3 connections at minimum.  
 1. Control head cable to a TP-Link TL-SG116E managed switch port 2.
 2. Switch port 3 to a POE++ (LTPOE++ compatible in my case) 90W POE inserter.
 3. POE inserter to the RF unit.  This must be on the RF Unit side of the switch closest to the RF Unit.
@@ -36,7 +36,7 @@ This is what is shown on the screen today.   There are many debug lines availabl
 Prerequisites are tcpdump utility.  Can do a 'sudo apt install tcpdump' if you are missing it on your system.
 on the Pi command line
 
-In the directory where your scripts are downloaded run the following command
+In the directory where your scripts are downloaded, run the following command
 
 ![{B754341F-3348-4FBB-B484-371D9CDB6658}](https://github.com/user-attachments/assets/89cba467-f293-41b3-bdd3-bd213ed8a367)
 
@@ -44,16 +44,21 @@ Hit Cntl+C to quit.
 
 You can run the command in Cap905 on the command line by itself and alter the filter values to look at other things.
 
-This is an example of the output as of 3 Feb 2025
+This is an example of the filterted and processed output as of 3 Feb 2025
 
 ![{00E975ED-C991-49BE-8E6F-841ED7ED576B}](https://github.com/user-attachments/assets/ec29406c-058c-40f6-b2e2-ede06eab98a7)
 
 
-Visible info include the 
-Band name
-PTT state, RX or TX
-Dial Frequency
-Lower and Upper edges of the band search table
-Offset used to convert the received VFO values to the actual dial frequency
+1. Visible info include the:
 
-The other hex data messages (indented ones) are from raw packet capture utitily filterted output.  I have not figured out how to shut those off yet.  They are not from the program itself.
+2. Band name
+
+3. PTT state, RX or TX
+
+4. Dial Frequency
+
+5. Lower and Upper edges of the band search table
+
+6. Offset used to convert the received VFO values to the actual dial frequency
+
+7. Other hex data messages.  The indented ones are from raw packet capture utility filtered output.  I have not figured out how to shut those off yet.  They are not from the program itself but that is what is piped into the Python program.  Not every message appear to be proceeed when high message rates are shived int the Python program, likey due to buffering issues.   I will be looking to move the TCP sniffing function from the script into the Python program.
