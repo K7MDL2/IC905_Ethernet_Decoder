@@ -26,6 +26,85 @@ A standalone Python program is now avaiable called TCP905.py.  It uses scapy mod
 
 The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.
 
+### TCP905v2.py Usage
+
+This is the same as TCP905.py below excpet instead of filtering and processing packets based on packet lengths, I am using the 2nd and sometimes the 3rd payload bytes.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally a 0x01 but occasionally is 0x02 or, as with the GPS data, 0x03.  
+
+I mapped out the message IDs (for lengths >259 total packet size) for a series of activities and located bytes for split/duplex, preamp, atten, and sequencial  order of IDs during PTT events.  
+
+Here is one example of a PTT message sequence.  More will be on the Wiki pages along with a catalog of message IDs which can be updated as we learn more.
+
+    SSB - No split - vfoB on same band also SSB
+    e8 01 RX Idle
+    e8 00 TX start when PTT pushed - like a trigger
+    e8 01 get this after TX starts
+    fc 00 ... heartbeat message likely every 1 second or so
+    f8 00 maybe get this in middle one time
+    fc 00 .... many until RX..    fc 00 streams with occasional f8 00 in middle
+    e8 00 TX End - trigger PTT change, now RX
+    d8 01 frequency update
+    50 03 NMEA data - sometimes
+    e8 01 RX idle
+
+These is a list of observed message IDs.  You can turn on print in the switch_case() method to see all IDs routed through to this list.
+The function 'unhandled()' does nothing, it is used to squelch known messages so we can see unknown messages easier.  I only added message ID that I have actually seen so we are not chasing ghosts.
+
+Replace any of these with dump() to do a hexdump and help identify what it does.  See first line (commented out) as an example
+Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.  Seems liek we have what we need.
+
+    switch = {
+    #0xYY: dump,  # example of a message routed to hex dump function for investigation
+    0x10: unhandled,
+    0x14: unhandled,
+    0x18: case_x18,   # preamp and atten, likely more
+    0x1c: unhandled,
+    0x20: unhandled,
+    0x24: unhandled,
+    0x28: unhandled,
+    0x2c: unhandled,
+    0x30: unhandled, # 0x3003 is NMEA data
+    0x34: unhandled,
+    0x3c: unhandled,
+    0x40: unhandled,
+    0x48: unhandled,
+    0x4c: unhandled,
+    0x50: unhandled,
+    0x54: unhandled,
+    0x58: unhandled,
+    0x5c: unhandled,
+    0x60: unhandled,
+    0x64: unhandled,
+    0x68: unhandled,
+    0x90: unhandled,
+    0xb4: unhandled,
+    0xb8: unhandled,
+    0xbc: unhandled,
+    0xc0: unhandled,
+    0xc4: unhandled,
+    0xc8: unhandled,
+    0xcc: unhandled,
+    0xd0: unhandled,
+    0xd4: case_xD4,   # gerated for Split status change, likely more events.
+    0xd8: frequency,  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.  Has split/duplex status in it
+    0xdc: unhandled,
+    0xe0: unhandled,
+    0xe4: unhandled,
+    0xe8: ptt,        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
+    0xf0: unhandled,  # fc 00 heartbeat message during TX
+    0xf4: unhandled,
+    0xf8: unhandled,  # f8 00 shows up periodically in middle of fc00 TX streams
+    0xfc: TX_on,
+    }
+
+I converted to this method because I wanted to more efficiently and accurately know what messages do what.  This approach is also somewhat self documenting as seen with the dump example it is easy to expose message IDs if interest while the rest of the program continues on.   The same information is often found in many different packets jsut waiting to be discovered.
+
+PTT is fairly robust and also accomodates split and duplex, swapping in the unselected VFO as active during transmit only.   Duplex and Split use the same byte, the only difference is that duplex is set to a programmed offset, I expect always in the same band.   The 905 will do cross band split so when duplex (and thus FM type modes) is off, VFOB (aka unselected VFO) is returned to the prior non-duplex value.  This can be on any band.
+
+I look in ID=0xd4 which is issued when split is enabled/disabled, and it can be found in the frequency update message ID=0xd8 at teh same byte location.  
+
+Lets say you have 1.2, 2.3 and 5.7GHz bands sharing a commmon wideband dish antenna.  You have each band connected to a SP3T coax switch and the switch common connected to the wideband antenna. You have VFOB set to 5GHz band and are RX on 2.3GHz  This means the antenna will  be on the RF Unit 2.3GHz RF output.  5GHz will be disconnected.  Finally you have SPLIT turned ON.  Now when you TX it will outut power on the 5GHz connector and TX into nothing.  Not only will no one hear you, it could be damaging for high power stuff downstream.  
+
+
 ### TCP905.py Usage
 
 Prerequisites are scappy python module.  Can do a 'sudo pip install scappy' if you are missing it on your system.  You mnay also need other modules such as NumP.  Once you have the required modules, change permisison to make it executable in Linux (chmod 777 TCP905.py is one method).   Then just run the program, usually with ./TCP905.py.  Sometimes on Windows you may do better with Python3 ./TCP905.py.
