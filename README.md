@@ -18,7 +18,7 @@ The long term setup for me will use 2 managed switches, my main shack 16-port TL
 
 ### Band Decoder programs
 
-As of Feb 4, 2025 there are now 2 means to extract the PTT and frequency events.  
+As of Feb 5, 2025 there are now 3 means to extract the PTT and frequency events.  
 
 The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cpa905 output is piped to Proc905.py.
 
