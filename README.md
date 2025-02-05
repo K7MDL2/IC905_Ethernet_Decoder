@@ -26,7 +26,7 @@ A standalone Python program is now avaiable called TCP905.py.  It uses scapy mod
 
 The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.
 
-### TCP905v2.py Usage
+### TCP905v2.py Usage  (Current Dev)
 
 This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and sometimes the 3rd payload bytes as message IDs.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally a 0x01 but occasionally is 0x02 or, as with the GPS data, 0x03.  
 
@@ -106,7 +106,7 @@ I look in ID=0xd4 which is issued when split is enabled/disabled, and it can be 
 Lets say you have 1.2, 2.3 and 5.7GHz bands sharing a commmon wideband dish antenna.  You have each band connected to a SP3T coax switch and the switch common connected to the wideband antenna. You have VFOB set to 5GHz band and are RX on 2.3GHz  This means the antenna will  be on the RF Unit 2.3GHz RF output.  5GHz will be disconnected.  Finally you have SPLIT turned ON.  Now when you TX it will outut power on the 5GHz connector and TX into nothing.  Not only will no one hear you, it could be damaging for high power stuff downstream.  
 
 
-### TCP905.py Usage
+### TCP905.py Usage  (Archived)
 
 Prerequisites are scappy python module.  Can do a 'sudo pip install scappy' if you are missing it on your system.  You mnay also need other modules such as NumP.  Once you have the required modules, change permisison to make it executable in Linux (chmod 777 TCP905.py is one method).   Then just run the program, usually with ./TCP905.py.  Sometimes on Windows you may do better with Python3 ./TCP905.py.
 
@@ -115,7 +115,7 @@ This is what is shown on the screen today.   There are many debug lines availabl
 ![{5CC56F77-3BA5-4E04-811F-E8A6A18BB169}](https://github.com/user-attachments/assets/3da194cd-1271-4369-9a4c-eb379c4d0303)
 
 
-### Script Usage
+### Script Usage  (Archived)
 
 Prerequisites are tcpdump utility.  Can do a 'sudo apt install tcpdump' if you are missing it on your system.
 on the Pi command line
