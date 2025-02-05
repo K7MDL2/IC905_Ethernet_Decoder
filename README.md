@@ -28,13 +28,14 @@ The programs here are tested on a Pi4B and intended to learn (enough) about the 
 
 ### TCP905v2.py Usage
 
-This is the same as TCP905.py below excpet instead of filtering and processing packets based on packet lengths, I am using the 2nd and sometimes the 3rd payload bytes.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally a 0x01 but occasionally is 0x02 or, as with the GPS data, 0x03.  
+This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and sometimes the 3rd payload bytes as message IDs.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally a 0x01 but occasionally is 0x02 or, as with the GPS data, 0x03.  
 
-I mapped out the message IDs (for lengths >259 total packet size) for a series of activities and located bytes for split/duplex, preamp, atten, and sequencial  order of IDs during PTT events.  
+I mapped out the message IDs (for lengths >259 total packet size) for a series of activities and located bytes for split/duplex, preamp, atten, and sequencial order of IDs during PTT events. 
 
-Here is one example of a PTT message sequence.  More will be on the Wiki pages along with a catalog of message IDs which can be updated as we learn more.
+Here is one example of a PTT message sequence.  More will be on the Wiki pages along with a catalog of message IDs which can be updated as we learn more.  The 2nd and 3rd byte values are listed.  I actually only route on teh 2nd byte, the 3rd is optionally used in teh functions.  For example e8 00 is PTT change event.  e8 is normal state, both for TX and RX.
 
     SSB - No split - vfoB on same band also SSB
+    
     e8 01 RX Idle
     e8 00 TX start when PTT pushed - like a trigger
     e8 01 get this after TX starts
@@ -46,11 +47,11 @@ Here is one example of a PTT message sequence.  More will be on the Wiki pages a
     50 03 NMEA data - sometimes
     e8 01 RX idle
 
-These is a list of observed message IDs.  You can turn on print in the switch_case() method to see all IDs routed through to this list.
-The function 'unhandled()' does nothing, it is used to squelch known messages so we can see unknown messages easier.  I only added message ID that I have actually seen so we are not chasing ghosts.
+Below is a list of observed message IDs.  You can turn on print in the switch_case() method to see all IDs routed through to this list.
+The function 'unhandled()' does nothing, it is used to squelch known messages so we can see unknown messages easier.  I only added message ID that I have actually seen so we are not chasing ghosts.  Unknown messages, message IDs not in the list, end up in the default function where some info is printed out such as "Unknown Message, ID == 0xD301 Length = 306".
 
-Replace any of these with dump() to do a hexdump and help identify what it does.  See first line (commented out) as an example
-Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.  Seems liek we have what we need.
+Replace any of these with dump() to do a hexdump and help identify what it does.  See first line (commented out) as an example.
+Lower the packet length filter size and you will see many more. Unclear if the smaller packets need to be looked at, seems like we have what we need.
 
     switch = {
     #0xYY: dump,  # example of a message routed to hex dump function for investigation
@@ -96,9 +97,9 @@ Lower the packet length filter size and you will see many more. Unclear if they 
     0xfc: TX_on,
     }
 
-I converted to this method because I wanted to more efficiently and accurately know what messages do what.  This approach is also somewhat self documenting as seen with the dump example it is easy to expose message IDs if interest while the rest of the program continues on.   The same information is often found in many different packets jsut waiting to be discovered.
+I converted to this method because I wanted to more efficiently and accurately know what messages do what things.  This approach is also somewhat self documenting as seen with the dump example it is easy to expose message IDs of interest while the rest of the program continues on.  The same information is often found in many different packets jsut waiting to be discovered.  Other contributors can update the list and add new functions for them easily.
 
-PTT is fairly robust and also accomodates split and duplex, swapping in the unselected VFO as active during transmit only.   Duplex and Split use the same byte, the only difference is that duplex is set to a programmed offset, I expect always in the same band.   The 905 will do cross band split so when duplex (and thus FM type modes) is off, VFOB (aka unselected VFO) is returned to the prior non-duplex value.  This can be on any band.
+PTT is fairly robust and also accomodates split and duplex, swapping in the unselected VFO as active during transmit only.   Duplex and Split use the same byte, the only difference is that duplex sets VFOB to a programmed offset, I expect always in the same band.   The 905 will do cross band split so when duplex (and thus FM type modes) is off, VFOB (aka unselected VFO) is returned to the prior non-duplex value.  This can be on any band.
 
 I look in ID=0xd4 which is issued when split is enabled/disabled, and it can be found in the frequency update message ID=0xd8 at teh same byte location.  
 
