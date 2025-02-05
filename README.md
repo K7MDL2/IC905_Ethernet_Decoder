@@ -26,6 +26,9 @@ A standalone Python program is now available called TCP905.py.  It uses scapy mo
 
 The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.   GPIO pins will operate relays or oter IO devices based on selected band and PTT state.   I have a relay Pi 'hat' with 3 relays on a Pi3B for example.  I will also set up BCD to talk to my 905 remote decoder board for 16 outputs (12 used - 6 PTT and 6 Band).
 
+![{EE40D230-11FF-4F5E-8067-A364F71EF05C}](https://github.com/user-attachments/assets/31102ccb-c4db-4b01-8da7-b14b4ef1c24f)
+
+
 ### TCP905v2.py Usage  (Current Dev)
 
 This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and sometimes the 3rd payload bytes as message IDs.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally a 0x01 but occasionally is 0x02 or, as with the GPS data, 0x03.  
