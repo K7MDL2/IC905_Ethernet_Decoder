@@ -22,9 +22,9 @@ As of Feb 5, 2025 there are now 3 means to extract the PTT and frequency events.
 
 The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cpa905 output is piped to Proc905.py.
 
-A standalone Python program is now avaiable called TCP905.py.  It uses scapy module to prefilter data bansed n packet lengths of interest as before.  The tcp packet payload is extracted and parsed for PTT and frequency data.
+A standalone Python program is now available called TCP905.py.  It uses scapy module to prefilter data based on packet lengths of interest as before.  The tcp packet payload is extracted and parsed for PTT and frequency data.  TCP905v2.py uses message ID based processing instead of packet lengths and is easier to add and extend.
 
-The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.
+The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.   GPIO pins will operate relays or oter IO devices based on selected band and PTT state.   I have a relay Pi 'hat' with 3 relays on a Pi3B for example.  I will also set up BCD to talk to my 905 remote decoder board for 16 outputs (12 used - 6 PTT and 6 Band).
 
 ### TCP905v2.py Usage  (Current Dev)
 
