@@ -190,7 +190,7 @@ class BandDecoder(OutputHandler):
                 if (__vfoa >= Freq_table[__band_name]['lower_edge'] and
                     __vfoa <= Freq_table[__band_name]['upper_edge'] ):
                     # Found a band match, print out the goods
-                    self.offset = Freq_table[__band_name]['offset'] 
+                    self.__offset = Freq_table[__band_name]['offset'] 
                     self.selected_vfo = __vfoa + self.__offset
                     self.vfoa_band = __band_name
                     
@@ -286,15 +286,16 @@ class Message_handler(BandDecoder):
             #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
             
             # These are the (reasonably) known IDs.
+            case 0x18: self.case_x18(),   # preamp and atten, likely more
+            case 0x30: self.unhandled(),  # 0x3003 is NMEA data
             case 0xd4: self.case_xD4(),   # Split
             case 0xd8: self.frequency(),  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.
             case 0xe8: self.ptt(),        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
-            case 0xfc: self.TX_on(),      # fc 00 heartbeat message during TX
-            case 0x18: self.case_x18(),   # preamp and atten, likely more
             case 0xf8: self.TX_on(),      # f8 00 shows up periodically in middle of fc00 TX streams
-            case 0x30: self.unhandled(),  # 0x3003 is NMEA data
+            case 0xfc: self.TX_on(),      # fc 00 heartbeat message during TX
             
             # When these are figured out, move them off this list and put them above.
+            # They are gouped for easier editing and visualization
             case 0x10 | 0x14  | 0x1c: self.unhandled(),
             case 0x20 | 0x24 | 0x28 | 0x2c: self.unhandled(),
             case 0x34 | 0x3c: self.unhandled(),
@@ -307,7 +308,7 @@ class Message_handler(BandDecoder):
             case 0xd0 | 0xdc: self.unhandled(),
             case 0xe0 | 0xe4: self.unhandled(),
             case 0xf0 | 0xf4: self.unhandled()
-            case _: self.case_default()
+            case _: self.case_default()   # anything we have not seen yet comes to here
 
     def switch_case(self, payload):
         self.payload_copy = payload
