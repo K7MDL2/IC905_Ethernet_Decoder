@@ -22,7 +22,11 @@ As of Feb 5, 2025 there are now 3 means to extract the PTT and frequency events.
 
 The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cpa905 output is piped to Proc905.py.
 
-A standalone Python program is now available called TCP905.py.  It uses scapy module to prefilter data based on packet lengths of interest as before.  The tcp packet payload is extracted and parsed for PTT and frequency data.  TCP905v2.py uses message ID based processing instead of packet lengths and is easier to add and extend.
+A standalone Python program is now available called TCP905.py.  It uses scapy module to prefilter data based on packet lengths of interest as before.  The tcp packet payload is extracted and parsed for PTT and frequency data.  IT was run on Python 3.9. 
+
+TCP905v2.py uses message ID based processing instead of packet lengths and is easier to add and extend.  It requires Python 3.10 or higher.  I tested on v3.12.3 in Python's virtual dev environment.   On my system I have to run the program as sudo or else I get access denied from the the network layer I think.  In the Python virtual env the command line looks like this:
+        
+    sudo /home/pi/venv/bin/python ./TCP905v2.py
 
 The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.   GPIO pins will operate relays or oter IO devices based on selected band and PTT state.   I have a relay Pi 'hat' with 3 relays on a Pi3B for example.  I will also set up BCD to talk to my 905 remote decoder board for 16 outputs (12 used - 6 PTT and 6 Band).
 
@@ -51,54 +55,38 @@ Here is one example of a PTT message sequence.  More will be on the Wiki pages a
     e8 01 RX idle
 
 Below is a list of observed message IDs.  You can turn on print in the switch_case() method to see all IDs routed through to this list.
-The function 'unhandled()' does nothing, it is used to squelch known messages so we can see unknown messages easier.  I only added message ID that I have actually seen so we are not chasing ghosts.  Unknown messages, message IDs not in the list, end up in the default function where some info is printed out such as "Unknown Message, ID == 0xD301 Length = 306".
+The function 'unhandled()' does nothing, it is used to squelch known messages so we can see unknown messages easier.  I only added message IDs that I have actually seen so we are not chasing ghosts.  Unknown messages, message IDs not in the list, end up in the default function where some info is printed out such as "Unknown Message, ID == 0xD301 Length = 306".
 
 Replace any of these with dump() to do a hexdump and help identify what it does.  See first line (commented out) as an example.
 Lower the packet length filter size and you will see many more. Unclear if the smaller packets need to be looked at, seems like we have what we need.
 
-    switch = {
-    #0xYY: dump,  # example of a message routed to hex dump function for investigation
-    0x10: unhandled,
-    0x14: unhandled,
-    0x18: case_x18,   # preamp and atten, likely more
-    0x1c: unhandled,
-    0x20: unhandled,
-    0x24: unhandled,
-    0x28: unhandled,
-    0x2c: unhandled,
-    0x30: unhandled, # 0x3003 is NMEA data
-    0x34: unhandled,
-    0x3c: unhandled,
-    0x40: unhandled,
-    0x48: unhandled,
-    0x4c: unhandled,
-    0x50: unhandled,
-    0x54: unhandled,
-    0x58: unhandled,
-    0x5c: unhandled,
-    0x60: unhandled,
-    0x64: unhandled,
-    0x68: unhandled,
-    0x90: unhandled,
-    0xb4: unhandled,
-    0xb8: unhandled,
-    0xbc: unhandled,
-    0xc0: unhandled,
-    0xc4: unhandled,
-    0xc8: unhandled,
-    0xcc: unhandled,
-    0xd0: unhandled,
-    0xd4: case_xD4,   # gerated for Split status change, likely more events.
-    0xd8: frequency,  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.  Has split/duplex status in it
-    0xdc: unhandled,
-    0xe0: unhandled,
-    0xe4: unhandled,
-    0xe8: ptt,        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
-    0xf0: unhandled,  # fc 00 heartbeat message during TX
-    0xf4: unhandled,
-    0xf8: unhandled,  # f8 00 shows up periodically in middle of fc00 TX streams
-    0xfc: TX_on,
-    }
+    def switch(self, ID):
+        match ID:
+            #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
+            
+            # These are the (reasonably) known IDs.
+            case 0xd4: self.case_xD4(),   # Split
+            case 0xd8: self.frequency(),  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.
+            case 0xe8: self.ptt(),        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
+            case 0xfc: self.TX_on(),      # fc 00 heartbeat message during TX
+            case 0x18: self.case_x18(),   # preamp and atten, likely more
+            case 0xf8: self.TX_on(),      # f8 00 shows up periodically in middle of fc00 TX streams
+            case 0x30: self.unhandled(),  # 0x3003 is NMEA data
+            
+            # When these are figured out, move them off this list and put them above.
+            case 0x10 | 0x14  | 0x1c: self.unhandled(),
+            case 0x20 | 0x24 | 0x28 | 0x2c: self.unhandled(),
+            case 0x34 | 0x3c: self.unhandled(),
+            case 0x40 | 0x48 | 0x4c: self.unhandled(),
+            case 0x50 | 0x54 | 0x58 | 0x5c: self.unhandled(),
+            case 0x60 | 0x64 | 0x68: self.unhandled(),
+            case 0x90: self.unhandled(),
+            case 0xb4 | 0xb8 | 0xbc: self.unhandled(),
+            case 0xc0 | 0xc4 | 0xc8 | 0xcc: self.unhandled(),
+            case 0xd0 | 0xdc: self.unhandled(),
+            case 0xe0 | 0xe4: self.unhandled(),
+            case 0xf0 | 0xf4: self.unhandled()
+            case _: self.case_default()
 
 I converted to this method because I wanted to more efficiently and accurately know what messages do what things.  This approach is also somewhat self documenting as seen with the dump example it is easy to expose message IDs of interest while the rest of the program continues on.  The same information is often found in many different packets jsut waiting to be discovered.  Other contributors can update the list and add new functions for them easily.
 

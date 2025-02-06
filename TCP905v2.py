@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  TCP905.py
+#  TCP905v2.py  
+#  
+#  Feb 2025 K7MDL
 #  
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -21,11 +23,7 @@
 #  
 from scapy.all import *
 import sys
-import binascii
 import numpy as np
-#import codecs
-from struct import *
-
   
 #  These band edge values are based on the radio message VFO
 #    values which have no offset applied
@@ -67,349 +65,266 @@ Freq_table = { '2M': {
                 }
             }
     
-band_name = ""    
-vfoa_band = ""
-vfob_band = ""
-selected_vfo = 0
-unselected_vfo = 0
-split_status = 0
-preamp_status = 0
-atten_status = 0
-ptt_state = -1
-payload_copy = ""
-payload_copy = ""
-payload_ID = 0
-payload_byte2 = 0
-offset = 0
+    
+#  __________________________________________________________________
+#    
+#  GPIO outputs for Band and PTT
+#  __________________________________________________________________
+#
+    
+class OutputHandler:     
+
+    def ptt_io_output(self, band, ptt):
+        print("PTT GPIO action here for", band, "PTT state", ptt)
+        
+        
+    def band_io_output(self, band):
+        print("BAND GPIO action here for", band)
+
 
 #  __________________________________________________________________
 #    
-#  Main packet processing functions
-#
+#  Packet data processing functions
 #  __________________________________________________________________
+#
 
-def case_x18():  # process items in message id # 0x18
-    global payload_copy
-    global atten_status
-    global preamp_status
-    global payload_byte2
-    
-    #print("Preamp  len", len(payload_copy), "  extra byte", payload_byte2)
-    #hexdump(payload_copy)
-    if (payload_byte2 == 1):
-        if (payload_copy[0x011d] == 1):
-            atten_status = 1
+class BandDecoder(OutputHandler):
+# We are inheriting from OutputHandler class so we can access its functions 
+#   and variables as if they were our own.
+    def __init__(self):
+        self.vfoa_band = ""
+        self.vfob_band = ""
+        self.selected_vfo = 0
+        self.unselected_vfo = 0
+        self.__selected_vfo_split_Tx = 0
+        self.__offset = 0
+        self.__vfoa_band_split_Tx = 0
+        self.split_status = 0
+        self.preamp_status = 0
+        self.atten_status = 0
+        self.ptt_state = -1
+        self.payload_copy = ""
+        self.payload_ID = 0
+        self.payload_byte2 = 0
+
+
+    def p_status(self, TAG):
+        print("("+TAG+") VFOA Band:", self.vfoa_band, " VFOA:", self.selected_vfo, " VFOB = ", self.unselected_vfo, 
+            " Split:",self.split_status, " Pre:",self.preamp_status, " Att:", self.atten_status, " PTT:", self.ptt_state)
+      
+                        
+    def case_x18(self):  # process items in message id # 0x18        
+        #print("Preamp  len", len(self.payload_copy), "  extra byte", self.payload_byte2)
+        #hexdump(self.payload_copy)
+        if (self.payload_byte2 == 1):
+            if (self.payload_copy[0x011d] == 1):
+                self.atten_status = 1
+            else:
+                self.atten_status = 0
+
+            if (self.payload_copy[0x011c] == 1):
+                self.preamp_status = 1
+            else: 
+                self.preamp_status = 0
+
+
+    def case_xD4(self):    # process items in message #0xd4
+        if (self.payload_copy[0x001b] == 1): # message #0xd4 @ 0x0001
+            self.split_status = 1
         else:
-            atten_status = 0
+            self.split_status = 0
 
-        if (payload_copy[0x011c] == 1):
-            preamp_status = 1
-        else: 
-            preamp_status = 0
 
-def case_xD4():    # process itgems in message #0xd4
-    global payload_copy
-    global split_status
-    
-    if (payload_copy[0x001b] == 1): # message #0xd4 @ 0x0001
-        split_status = 1
-    else:
-        split_status = 0
-
-def frequency():
-    global payload_copy
-    freq_last = 0
-    global offset
-    global band_name
-    global selected_vfo
-    global unselected_vfo
-    global vfoa_band
-    global vfob_band
-    global split_status
-    global ptt_state
-    
-    #hexdump(payload_copy)
-    np.set_printoptions(formatter={'int':hex})
-    #print(payload)
-    
-    # Duplex used split status byte for VFO swap, just has vfoB set different with offset
-    # split is updated in message ID 0xD4.  here we can also pick it up and nto wait for 
-    # someone to press the split button to generate the d4 event.
-    split_status = payload_copy[0x001b]
-    
-    vfoa = get_freq(payload_copy, 0)
-    #print("VFO A = ", vfoa)
-    
-    vfob = get_freq(payload_copy, 1)
-    #print("VFO B = ", vfob)
-
-    # Look for band changes
-    if (vfoa != freq_last):
-        # We changed frequencies - print it and do something with GPIO
-        #print("\nReceived Uncorrected Frequency Value is ", freq)
-        freq_last = vfoa
+    # convert little endian bytes to int frequency 
+    def get_freq(self, payload, VFO):
+        freq_hex_dec = np.array([0, 0, 0, 0],dtype=np.uint8)
         
-        # Search the Freq_table to see what band these values lie in
-        for band_name in Freq_table:
-            if (vfoa >= Freq_table[band_name]['lower_edge'] and
-                vfoa <= Freq_table[band_name]['upper_edge'] ):
-                # Found a band match, print out the goods
-                offset = Freq_table[band_name]['offset'] 
-                selected_vfo = vfoa + offset
-                vfoa_band = band_name
-                
-            if (vfob >= Freq_table[band_name]['lower_edge'] and
-                vfob <= Freq_table[band_name]['upper_edge'] ):
-                # Found a band match, print out the goods
-                offset = Freq_table[band_name]['offset'] 
-                unselected_vfo = vfob + offset
-                vfob_band = band_name
-                
-        print("VFO A Band = ", vfoa_band, "   Selected VFO = ", selected_vfo, "   unselected VFO = ", unselected_vfo)
-        print("Split=",split_status, " Preamp=",preamp_status, " Atten=", atten_status)
-        #print("  Lower edge = ", Freq_table[vfoa_band]['lower_edge'] + offset,
-        #      "  Upper edge = ", Freq_table[vfoa_band]['upper_edge'] + offset,
-        #      "  Offset = ", offset)
-        # call GPIO here
-    return vfoa_band
+        if VFO == 0:
+            vfo = 0x00b8
+        if VFO == 1:
+            vfo = 0x00c4
+            
+        for i in range(0, 4, 1):
+            freq_hex_dec[i] = (payload[vfo+i])
+        #print(freq_hex_dec)
 
-"""
-PTT sequence 
-
-SSB - No split - vfoB on same band also SSB
-e8 01 RX
-e8 00 TX start when Ptt pushed - like a trigger maybe
-e8 01 get this after TX starts
-fc 00 ...
-f8 00 maybe get this in middle
-fc 00 .... many until RX..    fc 00 streams with occasional f8 00 in middle
-e8 00 TX End - trigger PTT change, now RX
-d8 01 frequency update
-50 03 NMEA data - sometimes
-e8 01 RX idle
-
-CW - No split
-e8 01 RX
-e8 00 TX start when Ptt pushed - like a trigger maybe
-e8 01 get this after TX starts
-...PTT down... ( no key applied)
-e8 00 TX END, Now RX
-d8 01 frequency info
-50 03
-e8 01 RX idle
-
-SSB - Split On - vfoB on same band also SSB
-e8 01 RX
-e8 00 TX start when Ptt pushed - like a trigger maybe
-e8 01 get this after TX starts
-fc 00 ...
-f8 00 maybe get this in middle
-fc 00 .... many until RX..    fc 00 streams with occasional f8 00 in middle
-e8 00 TX End - trigger PTT change, now RX
-d8 01 frequency update
-50 03 NMEA data 
-e8 01 RX idle
-
-SSB - Split ON, VFO b on different band, also SSB (may have been in CW on VFOB recheck)
-e8 01 RX
-e8 00 TX start when Ptt pushed - like a trigger maybe
-e8 01 get this after TX starts
-fc 00 ... many until RX..    fc 00 streams with occasional f8 00 in middle
-e8 00 TX End Now in RX
-d8 00 frequency update
-50 ?? if split is on get this
-e8 01 RX
-
-FM - duplex 2M 
-e8 01 RX
-e8 00 TX start when Ptt pushed - like a trigger maybe
-d0 00 TX start for some mix of conditions.  Not for split
-e8 01 get this after TX starts
-fc 00 ... 
-f8 00  1x
-fc 00 many until RX..    fc 00 streams with occasional f8 00 in middle
-e8 00 TX End
-d8 00 frequency update
-30 03 NMEA string follows un-key likely for position and time update
-e8 01 RX Idle
-
-"""
-
-def ptt():
-    ptt_state_last = 255
-    global ptt_state
-    global vfoa_band
-    global vfob_band
-    global payload_copy
-    global payload_ID
-    global payload_byte2
-    global split_status
-    global selected_vfo
-    global unselected_vfo
-    selected_vfo_split_Tx = 0
-    unselected_vfo_split_Tx = 0
-    vfoa_band_split_Tx = 0
-    
-    # watch for PTT value changes
-    if (vfoa_band != ""):   # block PTT until we know what band we are on
-        if (not payload_byte2):
-            ptt_state = payload_copy[0xef]
-            #print("PTT state = ", ptt_state)
-            if (ptt_state != ptt_state_last):
-                if (ptt_state == 1):  # do not TX if the band is still unknown (such as at startup)
-                    print("VFO A Band = ", vfoa_band, " ptt_state is TX ", ptt_state, " Msg ID ", hex(payload_copy[0x0001]))
-                    # Call GPIO here
-                    if (split_status == 1):
-                        vfoa_band_split_Tx = vfoa_band  # back up the orignal VFOa band
-                        selected_vfo_split_Tx = selected_vfo  # back up original VFOa
-                        selected_vfo = unselected_vfo  # during TX assign b to a
-                        vfoa_band = vfob_band
-
-                if (ptt_state == 0):
-                    print("VFO A Band = ", vfoa_band, " ptt_state is RX ", ptt_state, " Msg ID ", hex(payload_copy[0x0001]))
-                    # Call GPIO here
-                    if (split_status == 1):
-                        vfoa_band = vfoa_band_split_Tx
-                        selected_vfo = selected_vfo_split_Tx
-
-                ptt_state_last = ptt_state
-                
-                # swap selected and unselected when split is on during TX
-                print("VFO A Band = ", vfoa_band, "   Selected VFO = ", selected_vfo, "   unselected VFO = ", unselected_vfo)
-                print("Split=",split_status, " Preamp=",preamp_status, " Atten=", atten_status)
-
-def TX_on():
-    print("Transmitting...")
-
-def dump():
-    global payload_copy
-    hexdump(payload_copy)
-
-def unhandled():
-    return "unhandled message"
-
-def case_default():
-    global payload_copy
-    global payload_ID
-    global payload_byte2
-    #ID = payload_copy[1:3].hex()
-    #ID = payload_copy[1:3]
-    #hexdump(payload_copy)
-    payload_len = len(payload_copy)
-    ID = unpack(">i",payload_copy[0:4])[0] ## convert bytes to unsigned int
-    padding = 8
-    ID = '0x'+hex(ID)[3:-1].zfill(4)
-    print("Unknown message, ID = ", ID, "  Length = ", payload_len)
-    return "no match found"
-
-# These is a list of observed message IDs.  
-# Turn on print in the switch_case() method to see all IDs routed through to this list
-# unhandled does noting, squelches the known messages so we can see unknown messages easier
-# Replace any of these with dump() to do a hexdump and help identify what it does.
-# Lower the packet length fikter size and you will see many more. Unlcear if they need to be looked at.
-
-switch = {
-    #0xYY: dump,  # example of a message routed to hex dump function for investigation
-    0x10: unhandled,
-    0x14: unhandled,
-    0x18: case_x18,   # preamp and atten, likely more
-    0x1c: unhandled,
-    0x20: unhandled,
-    0x24: unhandled,
-    0x28: unhandled,
-    0x2c: unhandled,
-    0x30: unhandled, # 0x3003 is NMEA data
-    0x34: unhandled,
-    0x3c: unhandled,
-    0x40: unhandled,
-    0x48: unhandled,
-    0x4c: unhandled,
-    0x50: unhandled,
-    0x54: unhandled,
-    0x58: unhandled,
-    0x5c: unhandled,
-    0x60: unhandled,
-    0x64: unhandled,
-    0x68: unhandled,
-    0x90: unhandled,
-    0xb4: unhandled,
-    0xb8: unhandled,
-    0xbc: unhandled,
-    0xc0: unhandled,
-    0xc4: unhandled,
-    0xc8: unhandled,
-    0xcc: unhandled,
-    0xd0: unhandled,
-    0xd4: case_xD4,   # Split
-    0xd8: frequency,  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.
-    0xdc: unhandled,
-    0xe0: unhandled,
-    0xe4: unhandled,
-    0xe8: ptt,        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
-    0xf0: unhandled,  # fc 00 heartbeat message during TX
-    0xf4: unhandled,
-    0xf8: unhandled,  # f8 00 shows up periodically in middle of fc00 TX streams
-    0xfc: TX_on,
-}
-
-# first byte of the payload always seems to be a 0x01.  Maybe it changes in sleep mode, TBD.
-# The 2nd byte of the payload looks to be a message ID.
-# The 3rd byte has values form 0 to 3 that I have observed so far.  Mostly 1 with 0 at times.
-# This function is the message router.  
-# Copies the payload into a global buffer in case it changes on us md way.
-# Extracts the first 3 bytes into global vars
-# then call the message function list indexed by message ID
-
-def switch_case(payload):
-    global payload_copy
-    global payload_ID
-    global payload_byte2
-    
-    payload_copy = payload
-    payload_ID = payload[0x0001]
-    payload_byte2 = payload[0x0002]
-    #print("Switch on ",hex(payload_ID))
-    return switch.get(payload_ID, case_default)()
-
-    
-# convert little endian bytes to int frequency 
-def get_freq(payload, VFO):
-    freq_hex_dec = np.array([0, 0, 0, 0],dtype=np.uint8)
-    
-    if VFO == 0:
-        vfo = 0x00b8
-    if VFO == 1:
-        vfo = 0x00c4
+        # Convert from ascii array to binary hex byte string
+        freq_hex_str = freq_hex_dec.tobytes()
+        #print(freq_hex_str)
         
-    for i in range(0, 4, 1):
-        freq_hex_dec[i] = (payload[vfo+i])
-    #print(freq_hex_dec)
+        # Flip from little to big endian
+        byte_data = bytes(freq_hex_str)
+        little_endian_bytes = byte_data[::-1]
+        little_endian_hex_str = little_endian_bytes.hex()
+        freq = int(little_endian_hex_str, base=16)
+        #print(freq)
+        # Now we have a decimal frequency
+        return freq
 
-    # Convert from ascii array to binary hex byte string
-    freq_hex_str = freq_hex_dec.tobytes()
-    #print(freq_hex_str)
-    
-    # Flip from little to big endian
-    byte_data = bytes(freq_hex_str)
-    little_endian_bytes = byte_data[::-1]
-    little_endian_hex_str = little_endian_bytes.hex()
-    freq = int(little_endian_hex_str, base=16)
-    #print(freq)
-    # Now we have a decimal frequency
-    return freq
+
+    def frequency(self):
+        __freq_last = 0
+        __vfoa_band_last = 0
+        #band_name = ""
+        
+        #hexdump(self.payload_copy)
+        np.set_printoptions(formatter={'int':hex})
+        #print(self.payload_copy)
+        
+        # Duplex used split status byte for VFO swap, just has vfoB set different with offset
+        # split is updated in message ID 0xD4.  here we can also pick it up and nto wait for 
+        # someone to press the split button to generate the d4 event.
+        self.split_status  = self.payload_copy[0x001b]
+        
+        # Returns the payload hex converted to int.  
+        # This need to have the band offset applied next
+        __vfoa = self.get_freq(self.payload_copy, 0) 
+        #print("VFO A = ", vfoa)
+        __vfob = self.get_freq(self.payload_copy, 1)
+        #print("VFO B = ", vfob)
+
+        # Look for band changes
+        if (__vfoa != __freq_last):
+            # Search the Freq_table to see what band these values lie in
+            for __band_name in Freq_table:
+                if (__vfoa >= Freq_table[__band_name]['lower_edge'] and
+                    __vfoa <= Freq_table[__band_name]['upper_edge'] ):
+                    # Found a band match, print out the goods
+                    self.offset = Freq_table[__band_name]['offset'] 
+                    self.selected_vfo = __vfoa + self.__offset
+                    self.vfoa_band = __band_name
+                    
+                if (__vfob >= Freq_table[__band_name]['lower_edge'] and
+                    __vfob <= Freq_table[__band_name]['upper_edge'] ):
+                    # Found a band match, print out the goods
+                    self.__offset = Freq_table[__band_name]['offset'] 
+                    self.unselected_vfo = __vfob + self.__offset
+                    self.vfob_band = __band_name
+
+            self.p_status("TUN") # print out our state
+            #print("  Lower edge = ", Freq_table[self.vfoa_band]['lower_edge'] + self.__offset,
+            #      "  Upper edge = ", Freq_table[self.vfoa_band]['upper_edge'] + self.__offset,
+            #      "  Offset = ", self.__offset)
+            
+            #  set band outputs on band changes
+            if (self.vfoa_band != __vfoa_band_last):
+                self.band_io_output(self.vfoa_band)
+                __vfoa_band_last = self.vfoa_band
+            
+            __freq_last = __vfoa
+        
+        return self.vfoa_band
+      
+        
+    # PTT sequence  - see Github Wiki pages for examples of mesaage ID flow
+    def ptt(self):
+        __ptt_state_last = 255       
+        # watch for PTT value changes
+        if (self.vfoa_band != ""):   # block PTT until we know what band we are on
+            if (not self.payload_byte2):
+                self.ptt_state = self.payload_copy[0xef]
+                #print("PTT state = ", self.ptt_state)
+                if (self.ptt_state != __ptt_state_last):
+                    if (self.ptt_state == 1):  # do not TX if the band is still unknown (such as at startup)
+                        #print("VFO A Band = ", self.vfoa_band, " ptt_state is TX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
+                        if (self.split_status == 1): # swap selected and unselected when split is on during TX
+                            self.__vfoa_band_split_Tx = self.vfoa_band  # back up the original VFOa band
+                            self.__selected_vfo_split_Tx = self.selected_vfo  # back up original VFOa
+                            self.selected_vfo = self.unselected_vfo  # during TX assign b to a
+                            self.vfoa_band = self.vfob_band
+                    if (self.ptt_state == 0):
+                        #print("VFO A Band = ", self.vfoa_band, " ptt_state is RX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
+                        if (self.split_status == 1): # swap selected and unselected when split is on during TX
+                            self.vfoa_band = self.__vfoa_band_split_Tx
+                            self.selected_vfo = self.__selected_vfo_split_Tx
+                    
+                    self.p_status("PTT")
+                    self.ptt_io_output(self.vfoa_band, self.ptt_state)
+                    __ptt_state_last = self.ptt_state
+
+
+    def TX_on(self):
+        print("Transmitting...")
+
+
+    def dump(self):
+        hexdump(self.payload_copy)
+
+
+    def unhandled(self):
+        return "unhandled message"
+
+
+    def case_default(self):
+        #hexdump(payload_copy)
+        __payload_len = len(self.payload_copy)
+        print("Unknown message,ID:0x"+format(self.payload_ID,'02x')+"  Attr:0x"+format(self.payload_byte2, '02x')+"  Length:", __payload_len)
+        return "no match found"
+
 #
+#   End of class BandDecoder
+#
+
 #  __________________________________________________________________
 #    
-#  Main packet processing function
+#   Routing to functions based on Message ID
+#  __________________________________________________________________
 #
+
+class Message_handler(BandDecoder):
+    # We are inheriting from BandDecoder class so we can access its functions 
+    #   and variables as if they were our own.
+        
+    # These is a list of observed message IDs.  
+    # Turn on print in the switch_case() method to see all IDs routed through to this list
+    # unhandled does nothing, squelches the known messages so we can see unknown messages easier
+    # Replace any of these with dump() to do a hexdump and help identify what it does.
+    # Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.
+    
+    def switch(self, ID):
+        match ID:
+            #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
+            
+            # These are the (reasonably) known IDs.
+            case 0xd4: self.case_xD4(),   # Split
+            case 0xd8: self.frequency(),  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.
+            case 0xe8: self.ptt(),        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
+            case 0xfc: self.TX_on(),      # fc 00 heartbeat message during TX
+            case 0x18: self.case_x18(),   # preamp and atten, likely more
+            case 0xf8: self.TX_on(),      # f8 00 shows up periodically in middle of fc00 TX streams
+            case 0x30: self.unhandled(),  # 0x3003 is NMEA data
+            
+            # When these are figured out, move them off this list and put them above.
+            case 0x10 | 0x14  | 0x1c: self.unhandled(),
+            case 0x20 | 0x24 | 0x28 | 0x2c: self.unhandled(),
+            case 0x34 | 0x3c: self.unhandled(),
+            case 0x40 | 0x48 | 0x4c: self.unhandled(),
+            case 0x50 | 0x54 | 0x58 | 0x5c: self.unhandled(),
+            case 0x60 | 0x64 | 0x68: self.unhandled(),
+            case 0x90: self.unhandled(),
+            case 0xb4 | 0xb8 | 0xbc: self.unhandled(),
+            case 0xc0 | 0xc4 | 0xc8 | 0xcc: self.unhandled(),
+            case 0xd0 | 0xdc: self.unhandled(),
+            case 0xe0 | 0xe4: self.unhandled(),
+            case 0xf0 | 0xf4: self.unhandled()
+            case _: self.case_default()
+
+    def switch_case(self, payload):
+        self.payload_copy = payload
+        self.payload_ID = payload[0x0001]
+        self.payload_byte2 = payload[0x0002]
+        # Turn this print ON to see all message IDs passing theough here
+        #print("Switch on ",hex(self.payload_ID))
+        self.switch(self.payload_ID)
+        
+#  __________________________________________________________________
+#    
+#   Packet Capture and Filtering
+#  __________________________________________________________________
+#
+
 def parse_packet(packet):
     conf.verb = 0
-    global band_name
-    global vfoa_band
-    global vfob_band
-    global atten_status
-    global preamp_status
-    global split_status
     
     """sniff callback function.
     """
@@ -422,13 +337,10 @@ def parse_packet(packet):
         payload_len = len(payload)
         #print("Payload Length = ", payload_len)
         if (payload_len > 16):
-            switch_case(payload)
-        
-        #print("Split:", split_status, " Preamp:", preamp_status, " Atten", atten_status)
-        
-  
-  
-def tcp_sniffer(args):     
+            mh.switch_case(payload)  # this extracts and routes messages to functions
+
+
+def tcp_sniffer(args): 
     try:
         # can read from piped data input
         #payload = sys.stdin.readline()
@@ -441,7 +353,7 @@ def tcp_sniffer(args):
             filter="tcp and port 50004 and greater 229",
             #filter="tcp and port 50004 and greater 70",
             iface=r'eth0',
-            prn=parse_packet
+            prn=parse_packet  # call this function to process filtered packets
             )
                 
     except KeyboardInterrupt:
@@ -450,4 +362,7 @@ def tcp_sniffer(args):
 
 if __name__ == '__main__':
     import sys
+    io = OutputHandler()  # instantiate our classes
+    bd = BandDecoder()
+    mh = Message_handler()
     sys.exit(tcp_sniffer(sys.argv))
