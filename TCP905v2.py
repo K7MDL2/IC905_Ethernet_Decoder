@@ -102,21 +102,30 @@ class BandDecoder(OutputHandler):
         self.split_status = 0
         self.preamp_status = 0
         self.atten_status = 0
-        self.ptt_state = -1
+        self.ptt_state = 0
         self.payload_copy = ""
         self.payload_ID = 0
         self.payload_byte2 = 0
-
+        self.__freq_last = 0
+        self.__vfoa_band_last = 0
+        self.__ptt_state_last = 255 
+        
 
     def p_status(self, TAG):
         print("("+TAG+") VFOA Band:", self.vfoa_band, " VFOA:", self.selected_vfo, " VFOB = ", self.unselected_vfo, 
             " Split:",self.split_status, " Pre:",self.preamp_status, " Att:", self.atten_status, " PTT:", self.ptt_state)
       
                         
+    # get 0x18 0x01 on band change while tuning or by screen
+    # has frequency in it same location as d8 message                    
     def case_x18(self):  # process items in message id # 0x18        
         #print("Preamp  len", len(self.payload_copy), "  extra byte", self.payload_byte2)
+        
+        #if (self.payload_byte2):
         #hexdump(self.payload_copy)
+
         if (self.payload_byte2 == 1):
+            
             if (self.payload_copy[0x011d] == 1):
                 self.atten_status = 1
             else:
@@ -127,13 +136,17 @@ class BandDecoder(OutputHandler):
             else: 
                 self.preamp_status = 0
 
-
-    def case_xD4(self):    # process items in message #0xd4
+    # get this message when split is changed, has freq info 
+    def case_xD4(self):    # process items in message #0xd4 0x00
+        if (self.payload_byte2 > 0):
+            hexdump(self.payload_copy)
+        
         if (self.payload_copy[0x001b] == 1): # message #0xd4 @ 0x0001
             self.split_status = 1
         else:
             self.split_status = 0
-
+        
+        print("Split changed to ",self.split_status)
 
     # convert little endian bytes to int frequency 
     def get_freq(self, payload, VFO):
@@ -162,12 +175,12 @@ class BandDecoder(OutputHandler):
         return freq
 
 
-    def frequency(self):
-        __freq_last = 0
-        __vfoa_band_last = 0
+    def frequency(self):  # 0xd8 0x00 is normal tuning update
         #band_name = ""
         
-        #hexdump(self.payload_copy)
+        if (self.payload_byte2 > 1):  # monitor to see if other than 0x00 happens
+            hexdump(self.payload_copy)
+            
         np.set_printoptions(formatter={'int':hex})
         #print(self.payload_copy)
         
@@ -184,7 +197,7 @@ class BandDecoder(OutputHandler):
         #print("VFO B = ", vfob)
 
         # Look for band changes
-        if (__vfoa != __freq_last):
+        if (__vfoa != self.__freq_last):
             # Search the Freq_table to see what band these values lie in
             for __band_name in Freq_table:
                 if (__vfoa >= Freq_table[__band_name]['lower_edge'] and
@@ -207,24 +220,23 @@ class BandDecoder(OutputHandler):
             #      "  Offset = ", self.__offset)
             
             #  set band outputs on band changes
-            if (self.vfoa_band != __vfoa_band_last):
+            if (self.vfoa_band != self.__vfoa_band_last):
                 self.band_io_output(self.vfoa_band)
-                __vfoa_band_last = self.vfoa_band
+                self.__vfoa_band_last = self.vfoa_band
             
-            __freq_last = __vfoa
+            self.__freq_last = __vfoa
         
         return self.vfoa_band
       
         
     # PTT sequence  - see Github Wiki pages for examples of mesaage ID flow
-    def ptt(self):
-        __ptt_state_last = 255       
+    def ptt(self):      
         # watch for PTT value changes
         if (self.vfoa_band != ""):   # block PTT until we know what band we are on
-            if (not self.payload_byte2):
+            if (self.payload_byte2 == 0):  # value 1 has no recognizable PTT or freq data
                 self.ptt_state = self.payload_copy[0xef]
                 #print("PTT state = ", self.ptt_state)
-                if (self.ptt_state != __ptt_state_last):
+                if (self.ptt_state != self.__ptt_state_last):
                     if (self.ptt_state == 1):  # do not TX if the band is still unknown (such as at startup)
                         #print("VFO A Band = ", self.vfoa_band, " ptt_state is TX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
                         if (self.split_status == 1): # swap selected and unselected when split is on during TX
@@ -240,7 +252,7 @@ class BandDecoder(OutputHandler):
                     
                     self.p_status("PTT")
                     self.ptt_io_output(self.vfoa_band, self.ptt_state)
-                    __ptt_state_last = self.ptt_state
+                    self.__ptt_state_last = self.ptt_state
 
 
     def TX_on(self):
@@ -281,14 +293,16 @@ class Message_handler(BandDecoder):
     # Replace any of these with dump() to do a hexdump and help identify what it does.
     # Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.
     
+    def dump_all(self):
+        hexdump(self.payload_copy)
+    
     def switch(self, ID):
         match ID:
             #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
-            
             # These are the (reasonably) known IDs.
-            case 0x18: self.case_x18(),   # preamp and atten, likely more
+            case 0x18: self.case_x18(), self.frequency(),   # preamp and atten, likely more
             case 0x30: self.unhandled(),  # 0x3003 is NMEA data
-            case 0xd4: self.case_xD4(),   # Split
+            case 0xd4: self.case_xD4(), self.frequency(),   # get Split msg on d4-00
             case 0xd8: self.frequency(),  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.
             case 0xe8: self.ptt(),        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
             case 0xf8: self.TX_on(),      # f8 00 shows up periodically in middle of fc00 TX streams
@@ -296,17 +310,20 @@ class Message_handler(BandDecoder):
             
             # When these are figured out, move them off this list and put them above.
             # They are gouped for easier editing and visualization
+            case 0x04 | 0x08 | 0x0b: self.unhandled(), # 04-03, 08-03 (periodic), 0b-02
             case 0x10 | 0x14  | 0x1c: self.unhandled(),
             case 0x20 | 0x24 | 0x28 | 0x2c: self.unhandled(),
             case 0x34 | 0x3c: self.unhandled(),
             case 0x40 | 0x48 | 0x4c: self.unhandled(),
             case 0x50 | 0x54 | 0x58 | 0x5c: self.unhandled(),
             case 0x60 | 0x64 | 0x68: self.unhandled(),
-            case 0x90: self.unhandled(),
-            case 0xb4 | 0xb8 | 0xbc: self.unhandled(),
+            case 0x84 | 0x88 | 0x8c: self.unhandled(),  # 84-02, 88-02, 8c-02
+            case 0x90 | 0x94 | 0x98 | 0x9c: self.unhandled(),  # 94-02,98-02, 9c-02 
+            case 0xa0 | 0xa4 | 0xa8 | 0xac: self.unhandled(),  # a0-02, a4-02, a8-00/02, ac-02
+            case 0xb0 | 0xb4 | 0xb8 | 0xbc: self.unhandled(), #b0-02
             case 0xc0 | 0xc4 | 0xc8 | 0xcc: self.unhandled(),
             case 0xd0 | 0xdc: self.unhandled(),
-            case 0xe0 | 0xe4: self.unhandled(),
+            case 0xe0 | 0xe4 | 0xec: self.unhandled(), # ec-02
             case 0xf0 | 0xf4: self.unhandled()
             case _: self.case_default()   # anything we have not seen yet comes to here
 
@@ -316,6 +333,8 @@ class Message_handler(BandDecoder):
         self.payload_byte2 = payload[0x0002]
         # Turn this print ON to see all message IDs passing theough here
         #print("Switch on ",hex(self.payload_ID))
+        #Turn this on to only see hex dumps for any and all packets
+        #self.dump_all()
         self.switch(self.payload_ID)
         
 #  __________________________________________________________________
