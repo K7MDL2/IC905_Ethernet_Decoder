@@ -60,34 +60,66 @@ The function 'unhandled()' does nothing, it is used to squelch known messages so
 Replace any of these with dump() to do a hexdump and help identify what it does.  See first line (commented out) as an example.
 Lower the packet length filter size and you will see many more. Unclear if the smaller packets need to be looked at, seems like we have what we need.
 
-    def switch(self, ID):
-        match ID:
-            #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
-            
-            # These are the (reasonably) known IDs.
-            case 0xd4: self.case_xD4(),   # Split
-            case 0xd8: self.frequency(),  # D8 00 - comes in 2 lengths, one short and one with NMEA data added on.
+     # These are the (reasonably) known IDs.            
+            case 0x0c: self.unhandled(),  # 0c-00, 20 byte payload, unknown data, not freq, lots of them
+            case 0x10 | 0x14: self.unhandled(),  # 28 byte payload, unknown data, not freq, lots of them
+            case 0x18: self.case_x18(), self.frequency(),   # 18-01 - 288 bytes for band chg, preamp, atten, likely more
+                                                            # 18 00 - 32 bytes continuous  unknown data
+            case 0x1c: self.unhandled(),  # 0x1c 00 - 0x23 bytes NMEA has oocasional $GPGGA, slows or stops when squelch is open on good signal
+            case 0x24: self.unhandled(),  # 0x24 00 - 88 bytes NMEA data, slow intermittent
+            case 0x2c: self.mode(),       # 0x2c 00 - 52 bytes follows PTT.  unknown data  NMEA during RX. 
+                                          # 0x2c 01 - 308 bytes get on mode change, has frequency data in it both vfos
+            case 0x30: self.unhandled(),  # 0x30 03 - NMEA data
+            case 0x34: self.unhandled(),  # 0x34 00 - 0x13 bytes $GNZDA NMEA data, usually 0s
+            case 0x38: self.unhandled(),  # 0x38 00 - 64 bytes NMEA data,like $GNZDA  mostly 0s, msg rate speeds up in TX
+            case 0x3c: self.unhandled(),  # 0x3c 00 - 68 bytes NMEA, $GPGGA, $GNZDA, $GLGSV  Fast rate during TX
+            case 0x40: self.unhandled(),  # 0x40 00 - 72 bytes NMEA data. On PTT and on band change
+            case 0x44: self.unhandled(),  # 0x44 00 - 0x4b bytes NMEA data 
+            case 0x50: self.unhandled(),  # 0x50 00 - 88 bytes NMEA data
+                                          # 0x50 03 - 856 bytes 1 time on TX start, lots of 0 ending with NMEA data
+            case 0x60: self.unhandled(),  # 0x60 00 - 104 bytes NMEA data
+            case 0x64: self.unhandled(),  # 0x60 00 - 108 bytes NMEA data
+                                          # 0x64 01 - 364 bytes NMEA data - burst of packets
+            case 0x68: self.unhandled(),  # 0x68 00 - 112 bytes NMEA data. periodic
+                                          # 0x68 02 - 624 bytes ?? 
+            case 0x6c: self.unhandled(),  # 0x6c 00 - 116 bytes NMEA data
+                                          # 0x6c 01 - 372 bytes ?? 
+            case 0x70: self.unhandled(),  # 0x70 00 - 120 bytes NMEA on RX, 0s on TX
+            case 0x74: self.unhandled(),  # 0x74 00 - 124 bytes ??
+            case 0x78: self.unhandled(),  # 0x78 00 - 128 bytes NMEA data 
+            case 0x7c: self.unhandled(),  # 0x7c 00 - 132 bytes NMEA data
+            case 0x80: self.unhandled(),  # 0x80 00 - NMEA data
+            case 0x88: self.unhandled(),  # 0x88 00 - 144 bytes mostly 0s
+            case 0xd0: self.ptt_start(),  # 0xd0 00 - 216 bytes PTT start event, freq at 0xb8 for current VFO.  Works on simplex, duplex, no split, no VFOb data
+            case 0xd4: self.case_xD4(), self.frequency(),   # get Split msg on d4-00
+            case 0xd8: self.frequency(),  # 0xd8 00 - comes in 2 lengths, one short and one with NMEA data added on.
+            case 0xdc: self.unhandled(),  # 0xdc 00 - 228 bytes rarely shows, has NMEA data in it
+            case 0xe4: self.unhandled(),  # 0xe4 01 - 492 bytes rarely shows, looks similar to spectrum data  
+            #e8 00 is PTT transition
+            #e8 01 is spectrum data on RX when enabled 0
+            #set screen to meter mode or signal+noise drop < ref line, get 1 with all 0 then no more until signal resumes
             case 0xe8: self.ptt(),        # e8 00 tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
-            case 0xfc: self.TX_on(),      # fc 00 heartbeat message during TX
-            case 0x18: self.case_x18(),   # preamp and atten, likely more
-            case 0xf8: self.TX_on(),      # f8 00 shows up periodically in middle of fc00 TX streams
-            case 0x30: self.unhandled(),  # 0x3003 is NMEA data
+            case 0xec: self.unhandled(), self.frequency(), # 0xec 00 - 244 bytes occurs on data-mode (digital mode) change
+            case 0xf0: self.unhandled(),  # 0xf0 00 - ??bytes have not captures it yet
+            case 0xf4: self.unhandled(),  # 0xf4   waiting to see one again
+            case 0xf8: self.TX_on(),      # 0xf8 00 - ??bytes shows up periodically in middle of fc00 TX streams
+            case 0xfc: self.TX_on(),      # 0xfc 00 - ??bytes  heartbeat message during TX
             
             # When these are figured out, move them off this list and put them above.
-            case 0x10 | 0x14  | 0x1c: self.unhandled(),
-            case 0x20 | 0x24 | 0x28 | 0x2c: self.unhandled(),
-            case 0x34 | 0x3c: self.unhandled(),
-            case 0x40 | 0x48 | 0x4c: self.unhandled(),
-            case 0x50 | 0x54 | 0x58 | 0x5c: self.unhandled(),
-            case 0x60 | 0x64 | 0x68: self.unhandled(),
-            case 0x90: self.unhandled(),
-            case 0xb4 | 0xb8 | 0xbc: self.unhandled(),
+            # They are gouped for easier editing and visualization
+            case 0x00 | 0x04 | 0x08 | 0x0b: self.unhandled(), # 00-02-l520, 04-03, 08-03 (periodic), 0b-02
+            case 0x20 | 0x28: self.unhandled(),
+            case 0x48 | 0x4c: self.unhandled(),
+            case 0x54 | 0x58 | 0x5c: self.unhandled(),
+            case 0x84 | 0x8c: self.unhandled(),  # 84-02, 88-02, 8c-02
+            case 0x90 | 0x94 | 0x98 | 0x9c: self.unhandled(),  # 94-02,98-02, 9c-02 
+            case 0xa0 | 0xa4 | 0xa8 | 0xac: self.unhandled(),  # a0-02, a4-02, a8-00/02, ac-02
+            case 0xb0 | 0xb4 | 0xb8 | 0xbc: self.unhandled(), #b0-02
             case 0xc0 | 0xc4 | 0xc8 | 0xcc: self.unhandled(),
-            case 0xd0 | 0xdc: self.unhandled(),
-            case 0xe0 | 0xe4: self.unhandled(),
-            case 0xf0 | 0xf4: self.unhandled()
-            case _: self.case_default()
-
+            case 0xe0: self.unhandled(), # ec-02
+            
+            case _: self.case_default()   # anything we have not seen yet comes to here
+            
 I converted to this method because I wanted to more efficiently and accurately know what messages do what things.  This approach is also somewhat self documenting as seen with the dump example it is easy to expose message IDs of interest while the rest of the program continues on.  The same information is often found in many different packets jsut waiting to be discovered.  Other contributors can update the list and add new functions for them easily.
 
 PTT is fairly robust and also accomodates split and duplex, swapping in the unselected VFO as active during transmit only.   Duplex and Split use the same byte, the only difference is that duplex sets VFOB to a programmed offset, I expect always in the same band.   The 905 will do cross band split so when duplex (and thus FM type modes) is off, VFOB (aka unselected VFO) is returned to the prior non-duplex value.  This can be on any band.
