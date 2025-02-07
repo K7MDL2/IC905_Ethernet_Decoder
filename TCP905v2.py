@@ -401,7 +401,7 @@ class Message_handler(BandDecoder):
             case 0x08: self.mode(),       # 0x08-01 - 272 byte payload, show up on mode change around DV mode has freq, mode, filt all 
                                           # 0x08 03 - 784 byte spectrum       on 2M and other bands SSB
             case 0x0b: self.dump(),       # 0x0b xx - ??
-            case 0x0c: sself.dump(),self.mode(),  # 0x0c 00 - 20 byte unknown data, not freq, lots of them saw at satartup while in DV/FM mode
+            case 0x0c: self.dump(),self.mode(),  # 0x0c 00 - 20 byte unknown data, not freq, lots of them saw at satartup while in DV/FM mode
             case 0x10: self.unhandled(),  # 0x10 03 - 792 byte spectrum maybe
             case 0x14: self.unhandled(),  # 0x14 01 - 284 byte spectrum maybe
                                           # 0x14 03 - 796 byte unknown data, not freq, lots of them
