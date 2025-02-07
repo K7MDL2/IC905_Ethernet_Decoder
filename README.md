@@ -62,7 +62,9 @@ Lower the packet length filter size and you will see many more. Unclear if the s
 
 The 3rd byte I am calling the message attribute was a big question.  It could be like CI-V's sub-command.  I have found several IS with up to 3 or 4 attributes.  They sort of act like the CI-V sub-command.  In the case of 0x18, Attr=01 has most all the usual CI-V settings - frequency, mode, preamp, att, filter, datamode.  The other attr values however look like spectrum kind of data so Attr has taken a bigger role.  While I have things workiong now, You have to look in the destination function to figure out how multiple saoruces are handled.  I plan to make the message routing use 2 keys, ID and Attr up front to make things easier to understand.  the comments itemize the Attr and for each, note what conditions it was seen and what might be in the payload.   
 
-After looking at so many of these and how many have the same incomplete chunks of NMEA data in the messages, I am suspecting the 905 code is leaving old buffer data in the messages and not seroing unused bytes out, or maybe these are uninitialized packet buffers.
+One pattern I might be seeing is some numeric groups of messages are assigned to certain modes.  Seems like being in DV, ATV, SSB, or RTTY causes a whole new group of spectrum-looking type messages.  Other messages within the 0x2x ID range also come and go based on mode (I think...).  You can tell if it is spectrum related by simply raising and lowering the reference level while watching the hexdumps.  When there is no visible spectrum on radio screen, most of the packets are filled then with 0s and/or they stop flowing until a signal or noise rises above the ref threshold.
+
+After looking at so many of these and how many have the same incomplete chunks of NMEA data in the messages, I am suspecting the 905 code is leaving old buffer data in the messages and not zeroing unused bytes out, or maybe these are uninitialized packet buffers.
 
       #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
             # These are IDs I have examined and a few are (reasonably) known.
