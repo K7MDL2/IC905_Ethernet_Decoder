@@ -140,8 +140,8 @@ class BandDecoder(OutputHandler):
         
     def case_x18(self):  # process items in message id # 0x18               
         #if (self.payload_byte2 == 1):
-        hexdump(self.payload_copy)
-        print("(ID:18) Length",self.payload_len)
+        #hexdump(self.payload_copy)
+        #print("(ID:18) Length",self.payload_len)
 
         if (self.payload_byte2 == 0x01):
             self.atten_status = self.payload_copy[0x011d]
@@ -149,6 +149,14 @@ class BandDecoder(OutputHandler):
             self.modeA = self.payload_copy[0x00bc]
             self.filter = self.payload_copy[0x00bd]
             self.datamode = self.payload_copy[0x00be]
+            vfoa = self.get_freq(self.payload_copy, 0) 
+            print("(ID:18) Source",format(self.payload_ID, "04x"),
+                "Split:",self.split_status,
+                "Mode:",self.modeA,
+                "Filter:",self.filter,
+                "DataM",self.datamode,
+                "Raw VFOA = ", vfoa,
+                " Length:",self.payload_len)
 
 
     # get this message when split is changed, has freq info 
@@ -161,16 +169,18 @@ class BandDecoder(OutputHandler):
         
         # attr = 0 is he only good one so far.  01 is zeros
         if (self.payload_byte2 == 0):  
-            print(self.payload_len)
             self.split_status = self.payload_copy[0x001b] # message #0xd4 @ 0x0001
             self.modeA = self.payload_copy[0x00bc]
             self.filter = self.payload_copy[0x00bd]
             self.datamode = self.payload_copy[0x00be]
-            print("(ID:d4) - Split:",self.split_status,
-                "  Mode:",  self.modeA,
-                "  Filter:",  self.filter,
-                "  DataM:",self.datamode,
-                "\n")
+            vfoa = self.get_freq(self.payload_copy, 0) 
+            print("(ID:d4) Source",format(self.payload_ID, "04x"),
+            "Split:",self.split_status,
+            "Mode:",self.modeA,
+            "Filter:",self.filter,
+            "DataM",self.datamode,
+            "Raw VFOA = ", vfoa,
+            " Length:",self.payload_len)
 
 
     # convert little endian bytes to int frequency 
@@ -206,7 +216,7 @@ class BandDecoder(OutputHandler):
             return  # 32 byte unknown data
         if (self.payload_len < 0x00b8):  # not long enough likely has wrong data in iti
             return  # can be called for multiple sources, not all good format
-        print("(Freq) Freq from ID:",format(self.payload_ID,"02x"))
+        #print("(Freq) Freq from ID:",format(self.payload_ID,"02x"))
         #hexdump(self.payload_copy)
         #print("Length",self.payload_len)
             
@@ -219,9 +229,6 @@ class BandDecoder(OutputHandler):
         self.modeA  = self.payload_copy[0x00bc]
         self.filter = self.payload_copy[0x00bd]
         self.datamode = self.payload_copy[0x00be]
-        print("(Freq) Source",format(self.payload_ID, "04x"),
-            "Split:",self.split_status,"Mode:",self.modeA,
-            "Filter:",self.filter,"DataM",self.datamode,"\n")
         
         # Returns the payload hex converted to int.  
         # This need to have the band offset applied next
@@ -259,6 +266,14 @@ class BandDecoder(OutputHandler):
                 self.__vfoa_band_last = self.vfoa_band
             
             self.__freq_last = __vfoa
+        else:
+            print("(Freq)  Source",format(self.payload_ID, "04x"),
+                "Split:",self.split_status,
+                "Mode:",self.modeA,
+                "Filter:",self.filter,
+                "DataM",self.datamode,
+                "Raw VFOA = ",__vfoa,
+                " Length:",self.payload_len)
         
         return self.vfoa_band
       
@@ -290,9 +305,13 @@ class BandDecoder(OutputHandler):
             self.filter = self.payload_copy[0x00bd]
             self.datamode = self.payload_copy[0x00be]
             __vfoa = self.get_freq(self.payload_copy, 0) 
-            print("(mode) Source",format(self.payload_ID, "04x"),
-            "Split:",self.split_status,"Mode:",self.modeA,
-            "Filter:",self.filter,"DataM",self.datamode,"VFO A = ", __vfoa)
+            print("(mode)  Source",format(self.payload_ID, "04x"),
+            "Split:",self.split_status,
+            "Mode:",self.modeA,
+            "Filter:",self.filter,
+            "DataM",self.datamode,
+            "Raw VFOA = ", __vfoa,
+            " Length:",self.payload_len)
         
     def ptt_start(self):
         #print("(ptt_start) PTT start event?? Likely not ")
@@ -386,7 +405,7 @@ class Message_handler(BandDecoder):
             case 0x10: self.unhandled(),  # 0x10 03 - 792 byte spectrum maybe
             case 0x14: self.unhandled(),  # 0x14 01 - 284 byte spectrum maybe
                                           # 0x14 03 - 796 byte unknown data, not freq, lots of them
-            case 0x18: self.case_x18(),   # 0x18-01 - 288 bytes for band chg, preamp, atten, likely more
+            case 0x18: self.case_x18(),self.frequency(),   # 0x18-01 - 288 bytes for band chg, preamp, atten, likely more
                                           # 0x18 00 - 32 bytes continuous  unknown data
                                           # 0x18 03 - 800 bytes lots of 0s adn some GPS near end.  Surrounded by 30, 40, a d0, then 54 an 64 IDs. Was in DV/FM
             case 0x1c: self.unhandled(),  # 0x1c 00 - 0x23 bytes NMEA has oocasional $GPGGA, slows or stops when squelch is open on good signal
@@ -405,7 +424,7 @@ class Message_handler(BandDecoder):
             case 0x44: self.unhandled(),  # 0x44 00 - 0x4b bytes NMEA data shows on startup of radio
                                           # 0x44 03 - 844 bytes Looks like spectrum data, was in RTTY switched to AM and 23cm to RTTY could be initial screen draw as happens on band change
             case 0x48: self.unhandled(),  # 0x48 03 - 848 bytes  Unknkown, was in FM and DV\FM, issued on switch from DV to SSB and back to DV
-            case 0x4c: self.dump(),       # 0x4c 01 - 356 bytes was in DV/FM all 0s   Spectrum in AM mode  Can visualize teh APRS bursts in the middle of the data range.
+            case 0x4c: self.unhandled(),       # 0x4c 01 - 356 bytes was in DV/FM all 0s   Spectrum in AM mode  Can visualize teh APRS bursts in the middle of the data range.
                                           #  when spectrum ref is lowered, data becomes 0s and then stops.  Only strong sugs burst packets
                                           # 0x4c 02 - 596 bytes  USB 2.4G  all zero quiet band
                                           # 0x4c 03 - 852 bytes  DV\FM, likely spectrum
@@ -487,12 +506,12 @@ class Message_handler(BandDecoder):
         self.payload_len = payload_len 
         
         # Turn off all lines below this to see only hex data on screen
-        if (self.payload_ID == 0xa4):   # a0 a4 a8 ac
-            hexdump(payload)
-            print(self.payload_len, "\n")
+        #if (self.payload_ID == 0xa4):   # a0 a4 a8 ac
+         #   hexdump(payload)
+         #   print(self.payload_len, "\n")
         
         # Turn this print ON to see all message IDs passing through here
-        print("Switch on 0x"+format(self.payload_ID,"02x")+"  Attr:0x"+format(self.payload_byte2,"02x")+"  Len:", format(self.payload_len))
+        #print("Switch on 0x"+format(self.payload_ID,"02x")+"  Attr:0x"+format(self.payload_byte2,"02x")+"  Len:", format(self.payload_len))
         
         #Turn this on to only see hex dumps for any and all packets
         #self.dump()
