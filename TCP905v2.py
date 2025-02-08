@@ -167,7 +167,7 @@ class BandDecoder(OutputHandler):
             self.atten_status = self.payload_copy[0x011d]
             self.preamp_status = self.payload_copy[0x011c]
         self.modeA = self.payload_copy[0x00bc]
-        self.filter = self.payload_copy[0x00bd]
+        self.filter = self.payload_copy[0x00bd]+1
         self.datamode = self.payload_copy[0x00be]
         self.in_menu = self.payload_copy[0x00d8]
         self.frequency()
@@ -189,7 +189,7 @@ class BandDecoder(OutputHandler):
         self.split_status = self.payload_copy[0x001b] # message #0xd400 @ 0x0001
         #self.split_status = self.payload_copy[0x00b3] # message #0xd400 @ 0x0001
         self.modeA = self.payload_copy[0x00bc]
-        self.filter = self.payload_copy[0x00bd]
+        self.filter = self.payload_copy[0x00bd]+1
         self.datamode = self.payload_copy[0x00be]
         self.in_menu = self.payload_copy[0x00d8]
         self.frequency()
@@ -243,7 +243,7 @@ class BandDecoder(OutputHandler):
             # collect premp and atten via other messages.
         
         self.modeA  = self.payload_copy[vfoa+4]
-        self.filter = self.payload_copy[vfoa+5]
+        self.filter = self.payload_copy[vfoa+5]+1
         self.datamode = self.payload_copy[vfoa+6]
     
         if (self.vfoa_band == "13cm" or self.vfoa_band == "6cm"):
@@ -290,13 +290,6 @@ class BandDecoder(OutputHandler):
             self.__freq_last = __vfoa
         else:
             self.p_status("FREQ ") # print out our state
-            #print("(Freq)  Source",format(self.payload_ID, "04x"),
-            #   "Split:",self.split_status,
-            #    "Mode:",self.modeA,
-            #    "Filter:",self.filter,
-            #    "DataM",self.datamode,
-            #    "Band = ",self.vfoa_band,
-            #    " Length:",self.payload_len)
         
         return self.vfoa_band
       
@@ -333,7 +326,7 @@ class BandDecoder(OutputHandler):
                 
         self.split_status = self.payload_copy[0x00b3] # message #0xd400 @ 0x0001
         self.modeA  = self.payload_copy[0x00bc]
-        self.filter = self.payload_copy[0x00bd]
+        self.filter = self.payload_copy[0x00bd]+1
         self.datamode = self.payload_copy[0x00be]
         self.frequency()
 
