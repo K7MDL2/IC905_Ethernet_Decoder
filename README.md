@@ -35,23 +35,35 @@ The programs here are tested on a Pi4B and intended to learn (enough) about the 
 
 ### TCP905v2.py Usage  (Current Dev)
 
-This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and sometimes the 3rd payload bytes as message IDs.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally a 0x01 but occasionally is 0x02 or, as with the GPS data, 0x03.  
+This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and 3rd payload bytes as the message ID.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally between 0 and 3 with a few exceptions.   
 
-I mapped out the message IDs (for lengths >259 total packet size) for a series of activities and located bytes for split/duplex, preamp, atten, and sequencial order of IDs during PTT events. 
+I have mapped out just about every required packet for reliable band decoding and PTT and weeded out the ones that are not useful.  In a few cases the same ID message presented totally different kinds of data.  I found a few more bytes to differentiate them and keep things clean.  Seem pretty robust now.  
 
-Here is one example of a PTT message sequence.  More will be on the Wiki pages along with a catalog of message IDs which can be updated as we learn more.  The 2nd and 3rd byte values are listed.  I actually only route on teh 2nd byte, the 3rd is optionally used in teh functions.  For example e8 00 is PTT change event.  e8 is normal state, both for TX and RX.
+Since we cannot query the radio, we can only glean what we see from the time we start our program.  The radio communication to the RF unit is primarily event driven and until an action at the controller happens, such as preamp, split, or VFO frequency, we do not know the current state.  Without a valid VFO frequency I cannot know what relays to operate so I block PTT until a good frequency is observed.  When you turn on the radio the 3rd message (a8 03) syncs up the radio and controller and teh values we need are in there. 
+
+There 2 solutions. 
+1. Operate a radio screen or physical control.  Not every control will generate a (useful) message for us.  Changing a major setting like filter, mode, band, VFO, will and that will unblock PTT.
+2. The best solution is to turn on our band decoder before the radio so we can see the initialization message.  Then we are ready to go.
+
+Here is a shot of the heavily reformatted screen messages as of 7 Feb 2025.  You can see changes to many radio settings were made.  Many of these are not required for band decoder purposes but they are mostly always in the same message so why not.  It is helpful to me to spot any corruption of the messages I am relying on.   Frequency (thus our calculated band), PTT, and split are the absolute required items.  The rest are just FYI.  Since they are not important I have not bothered to translate the numeric values to Text labels.  
+
+![{1F289F93-5F2B-4D62-B84C-77F95CF20E4F}](https://github.com/user-attachments/assets/16358502-d9eb-4077-a8f4-d922e329b3f2)
+
+
+Having mapped out the messages and their lengths, The useful messages length are now known. The program starts by low leel filtering filtering allwoing p[acket length > 229 bytes.  66 bytes are TCP header stuff.  In my tables I have recorded the payload lengths and apply a max size filter early on.  There are a lot of large payloads containing spectrum related content and GPS data.  That leaves far fewer packets to process a we ony need a relative few. 
+
+The message sequence for Tx/Rx transitions seem to vary by band and mode. I have tried many combinations and bekleive I have things covered.  There are several places in the code you can see what messages are passing by and optionally do a hexdump on them in a way that makes it easy to identify visually any changing bytes.
+
+Here is one example of a PTT message sequence.   More info is in the Wiki pages along with a catalog of message IDs which can be updated as we learn more.  The ID_byte and the Attribute_Bytes are combined to create an ID value.
 
     SSB - No split - vfoB on same band also SSB
     
     e8 01 RX Idle
     e8 00 TX start when PTT pushed - like a trigger
     e8 01 get this after TX starts
-    fc 00 ... heartbeat message likely every 1 second or so
-    f8 00 maybe get this in middle one time
-    fc 00 .... many until RX..    fc 00 streams with occasional f8 00 in middle
     e8 00 TX End - trigger PTT change, now RX
     d8 01 frequency update
-    50 03 NMEA data - sometimes
+    50 03 NMEA data - this is not part of the regular sequence, just an example of a variety async packets mixed in.
     e8 01 RX idle
 
 Below is a list of observed message IDs.  You can turn on print in the switch_case() method to see all IDs routed through to this list.
