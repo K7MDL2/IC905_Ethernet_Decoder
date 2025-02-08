@@ -38,9 +38,7 @@ The programs here are tested on a Pi4B and intended to learn (enough) about the 
 I have created a Wiki page Building the Project for how to build and configure the program to run on a remote RPi board.
 https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Building-the-Project
 
-This Wiki page (and others) 
-
-    TBD
+This Wiki page (and others)  https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO  shows how to configure the code and hardware for GPIO ouotput to control things like antenna switches and amplifier keying. 
 
 detail how to configure the GPIO output with examples for a PiHat Relay board and using a direct connection ot my 905 USB Band decoder project Remote BCD decoder board which provides 6 buffered BAND outputs and 6 buffered PTT outputs for 6 bands.
 
