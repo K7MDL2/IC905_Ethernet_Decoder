@@ -24,7 +24,8 @@
 from scapy.all import *
 import sys
 import numpy as np
-import time
+from time import sleep
+import RPi.GPIO as GPIO
   
 #  These band edge values are based on the radio message VFO
 #    values which have no offset applied
@@ -37,32 +38,44 @@ import time
 Freq_table = { '2M': {
                     'lower_edge':144000000,
                     'upper_edge':148000000,
-                        'offset':0
+                        'offset':0,
+                      'band_pin':26,
+                       'ptt_pin':21,
                 },
                 '70cm': {
                     'lower_edge':231000000,
                     'upper_edge':251000000,
-                        'offset':199000000 
+                        'offset':199000000,
+                      'band_pin':19,
+                       'ptt_pin':20,
                 },
                 '23cm': {
                     'lower_edge':351000000,
                     'upper_edge':411000000,
-                        'offset':889000000
+                        'offset':889000000,
+                      'band_pin':13,
+                       'ptt_pin':16,
                 },
                 '13cm': {
                     'lower_edge':562000000,
                     'upper_edge':712000000,
-                        'offset':1738000000
+                        'offset':1738000000,
+                      'band_pin':6,
+                       'ptt_pin':12,
                 },
                 '6cm': {
                     'lower_edge':963000000,
                     'upper_edge':1238000000,
-                        'offset':4687000000
+                        'offset':4687000000,
+                      'band_pin':5,
+                       'ptt_pin':1,
                 },
                 '3cm': {
                     'lower_edge':2231000000,
                     'upper_edge':2251000000,
-                        'offset':99989000000
+                        'offset':99989000000,
+                      'band_pin':0,
+                       'ptt_pin':7,
                 }
             }
     
@@ -74,13 +87,35 @@ Freq_table = { '2M': {
 #
     
 class OutputHandler:     
+    
+    def gpio_config(self):
+        GPIO.setmode(GPIO.BCM)
+        for __band_name in Freq_table:
+            # Found a band match, set io pins to output mode
+            GPIO.setup(Freq_table[__band_name]['band_pin'], GPIO.OUT, initial=GPIO.LOW) 
+            GPIO.setup(Freq_table[__band_name]['ptt_pin'],  GPIO.OUT, initial=GPIO.LOW)
+        print("GPIO pin mode setup complete")
+                
 
     def ptt_io_output(self, band, ptt):
-        print("******* PTT GPIO action here for", band, "PTT state", ptt)
-        
-        
+        for __band_name in Freq_table:
+            if (__band_name == band):
+                # Found a band match, set io pin
+                GPIO.output(Freq_table[__band_name]['ptt_pin'], ptt)
+                print("******* PTT Output for", __band_name, "PTT state", ptt)
+
+
     def band_io_output(self, band):
-        print("------- BAND GPIO action here for", band)
+        # turn off all band outputs
+        for __band_name in Freq_table:
+            GPIO.output(Freq_table[__band_name]['band_pin'], 0)
+        
+        # turn on selected band output
+        for __band_name in Freq_table:
+            if (__band_name == band):
+                # Found a band match, set io pin
+                GPIO.output(Freq_table[__band_name]['band_pin'], 1)
+                print("------- BAND Output for", band) 
 
 
 #  __________________________________________________________________
@@ -676,4 +711,5 @@ if __name__ == '__main__':
     io = OutputHandler()  # instantiate our classes
     bd = BandDecoder()
     mh = Message_handler()
+    io.gpio_config()
     sys.exit(tcp_sniffer(sys.argv))
