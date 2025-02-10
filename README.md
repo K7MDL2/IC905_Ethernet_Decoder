@@ -35,6 +35,13 @@ The programs here are tested on a Pi4B and intended to learn (enough) about the 
 
 ### TCP905v2.py Usage  (Current Dev)
 
+I have created a Wiki page Building the Project for how to build and configure the program to run on a remote RPi board.
+https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Building-the-Project
+
+This Wiki page (and others)  https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO  shows how to configure the code and hardware for GPIO ouotput to control things like antenna switches and amplifier keying. 
+
+detail how to configure the GPIO output with examples for a PiHat Relay board and using a direct connection ot my 905 USB Band decoder project Remote BCD decoder board which provides 6 buffered BAND outputs and 6 buffered PTT outputs for 6 bands.
+
 This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and 3rd payload bytes as the message ID.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally between 0 and 3 with a few exceptions.   
 
 I have mapped out just about every required packet for reliable band decoding and PTT and weeded out the ones that are not useful.  In a few cases the same ID message presented totally different kinds of data.  I found a few more bytes to differentiate them and keep things clean.  Seem pretty robust now.  
@@ -45,7 +52,7 @@ There 2 solutions.
 1. Operate a radio screen or physical control.  Not every control will generate a (useful) message for us.  Changing a major setting like filter, mode, band, VFO, will and that will unblock PTT.
 2. The best solution is to turn on our band decoder before the radio so we can see the initialization message.  Then we are ready to go.
 
-Here is a shot of the heavily reformatted screen messages as of 7 Feb 2025.  You can see changes to many radio settings were made.  Many of these are not required for band decoder purposes but they are mostly always in the same message so why not.  It is helpful to me to spot any corruption of the messages I am relying on.   Frequency (thus our calculated band), PTT, and split are the absolute required items.  The rest are just FYI.  Since they are not important I have not bothered to translate the numeric values to Text labels.  
+Here is a shot of the heavily reformatted screen messages as of 7 Feb 2025.  You can see changes to some radio settings.  Many of these are not required for band decoder purposes but they are mostly always in the same message so why not.  It is helpful to me to spot any corruption of the messages I am relying on.   Frequency (thus our calculated band), PTT, and split are the absolute required items.  The rest are just FYI.  Since they are not important I have not bothered to translate the numeric values to Text labels.  The filter number I display is adjusted to match FIL1-FIL3 on the radio screen.  You can see 2 TX events.  One has crossband split enabled so it invokes a band change along with a 0.3sec delay. All that is missing is the GPIO.
 
 ![{1F289F93-5F2B-4D62-B84C-77F95CF20E4F}](https://github.com/user-attachments/assets/16358502-d9eb-4077-a8f4-d922e329b3f2)
 
