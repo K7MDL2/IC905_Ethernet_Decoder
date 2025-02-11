@@ -46,15 +46,19 @@ This is the same as TCP905.py below except instead of filtering and processing p
 
 I have mapped out just about every required packet for reliable band decoding and PTT and weeded out the ones that are not useful.  In a few cases the same ID message presented totally different kinds of data.  I found a few more bytes to differentiate them and keep things clean.  Seem pretty robust now.  
 
-Since we cannot query the radio, we can only glean what we see from the time we start our program.  The radio communication to the RF unit is primarily event driven and until an action at the controller happens, such as preamp, split, or VFO frequency, we do not know the current state.  Without a valid VFO frequency I cannot know what relays to operate so I block PTT until a good frequency is observed.  When you turn on the radio the 3rd message (a8 03) syncs up the radio and controller and teh values we need are in there. 
+Since we cannot query the radio, we can only glean what we see from the time we start our program.  The radio communication to the RF unit is primarily event driven and until an action at the controller happens, such as preamp, split, or VFO frequency, we do not know the current state.  Without a valid VFO frequency I cannot know what relays to operate so I block PTT until a good frequency is observed.  When you turn on the radio the 3rd message (a8 03) syncs up the radio and controller and the values we need are in there. 
 
 There 2 solutions. 
 1. Operate a radio screen or physical control.  Not every control will generate a (useful) message for us.  Changing a major setting like filter, mode, band, VFO, will and that will unblock PTT.
 2. The best solution is to turn on our band decoder before the radio so we can see the initialization message.  Then we are ready to go.
 
-Here is a shot of the heavily reformatted screen messages as of 7 Feb 2025.  You can see changes to some radio settings.  Many of these are not required for band decoder purposes but they are mostly always in the same message so why not.  It is helpful to me to spot any corruption of the messages I am relying on.   Frequency (thus our calculated band), PTT, and split are the absolute required items.  The rest are just FYI.  Since they are not important I have not bothered to translate the numeric values to Text labels.  The filter number I display is adjusted to match FIL1-FIL3 on the radio screen.  You can see 2 TX events.  One has crossband split enabled so it invokes a band change along with a 0.3sec delay. All that is missing is the GPIO.  The key info is now colorized for easier visual tracking.
+Here is a shot of the heavily reformatted screen messages as of 7 Feb 2025.  
 
 ![{F8D0929C-4E38-444D-BF37-ED702394ECAB}](https://github.com/user-attachments/assets/751436ec-67ce-4ed3-83b2-ec6fa3ba498b)
+
+You can see changes to some radio settings.  Many of these are not required for band decoder purposes but they are mostly always in the same message so why not.  It is helpful to me to spot any corruption of the messages I am relying on.  Frequency, thus our calculated band, PTT, and split are the absolute required items.  The rest are just FYI.  Since they are not important I have not bothered to translate the numeric values to Text labels.  The filter number I display is adjusted to match FIL1-FIL3 on the radio screen.  
+
+You can see a few TX-RX events marked in RED and GREEN.  One has crossband split enabled so it invokes a band change along with a 0.3sec delay after changing the band output to the new VFO band furing TX and back tot ehg RX band after a short delay.  The key info is now colorized for easier visual tracking.
 
 Having mapped out the messages and their lengths, The useful messages length are now known. The program starts by low leel filtering filtering allwoing p[acket length > 229 bytes.  66 bytes are TCP header stuff.  In my tables I have recorded the payload lengths and apply a max size filter early on.  There are a lot of large payloads containing spectrum related content and GPS data.  That leaves far fewer packets to process a we ony need a relative few. 
 
