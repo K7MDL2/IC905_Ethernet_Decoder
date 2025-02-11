@@ -74,9 +74,9 @@ There 2 solutions.
 1. Operate a radio screen or physical control.  Not every control will generate a (useful) message for us.  Changing a major setting like filter, mode, band, VFO, will and that will unblock PTT.
 2. The best solution is to turn on our band decoder before the radio so we can see the initialization message.  Then we are ready to go.
 
-Here is a shot of the heavily reformatted screen messages as of 7 Feb 2025.  
+Here is a shot of the heavily reformatted screen messages as of 11 Feb 2025.  I have aligned and colorized the various fields of most interest.
 
-![{F8D0929C-4E38-444D-BF37-ED702394ECAB}](https://github.com/user-attachments/assets/751436ec-67ce-4ed3-83b2-ec6fa3ba498b)
+![image](https://github.com/user-attachments/assets/66a712eb-bb8d-444c-9264-af40477c0509)
 
 You can see changes to some radio settings.  Many of these are not required for band decoder purposes but they are mostly always in the same message so why not.  It is helpful to me to spot any corruption of the messages I am relying on.  Frequency, thus our calculated band, PTT, and split are the absolute required items.  The rest are just FYI.  Since they are not important I have not bothered to translate the numeric values to Text labels.  The filter number I display is adjusted to match FIL1-FIL3 on the radio screen.  
 
