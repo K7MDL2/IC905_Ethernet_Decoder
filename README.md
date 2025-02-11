@@ -1,4 +1,15 @@
-This project is supporting efforts to understand and utilize the Icom IC-905 Controller to RF Unit ethernet messages. The main goal is to extract PTT events and current RX/TX frequency from the ethernet cable physically close to the RF unit eliminating long control cable runs to tower mounted units to operate relays for antennas switching and amplifier control. 
+| Uses | ![alt text][Pi4B] | ![alt text][Pi3B] | ![alt text][IC-905] | ![alt text][Python] | ![alt text][POE++] | ![alt text][VLAN] | 
+| --- | --- | --- | --- | --- | --- | --- |
+
+[Pi4B]: https://img.shields.io/badge/-Pi%204B-green "Pi 4B"
+[Pi3B]: https://img.shields.io/badge/-Pi%203B-orange "Pi 3B"
+[IC-905]: https://img.shields.io/badge/-IC--905-cyan "IC-905"
+[Python]: https://img.shields.io/badge/-Python%203.12-red "Python5"
+[POE++]: https://img.shields.io/badge/-POE++-yellow "POE++"
+[VLAN]: https://img.shields.io/badge/-VLAN-blue "VLAN"
+
+
+This project is supporting efforts to understand and utilize the Icom IC-905 Controller to RF Unit ethernet messages to perform band decoder functions. The main goal is to extract PTT events and current RX/TX frequency from the ethernet cable physically close to the RF unit eliminating long control cable runs to tower mounted units to operate relays for antenna switching and amplifier control.  It also frees up the USB port for a local computer connection for logging and digital mode applications.
 
 This is an undocumented protocol so Icom could change it in future firmware updates rendering these progams useless, be warned.
 
