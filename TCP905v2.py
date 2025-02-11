@@ -27,7 +27,7 @@ import numpy as np
 from time import sleep
 import RPi.GPIO as GPIO
   
-#  These band edge values are based on the radio message VFO
+#  These band edge frequency values are based on the radio message VFO
 #    values which have no offset applied
 #  We use this value then once we know the band we can add the
 #    fixed offset and then display the actual dial frequency
@@ -35,51 +35,100 @@ import RPi.GPIO as GPIO
 #  The 10G band values in this table are just dummy values until
 #    the 10G transverter is hooked up to observe the actual values
 
+# The band and ptt values are the mapping to the group of 6 pins 
+#    for band and 6 pins for ptt
+#    Set the pin(s) yuo want activated when the band is active
+# At startup all wil be 0 then initialized once the band is first determined
+# In the IO-Table below are the pin assignmant and whether they are inverted or not
+
 Freq_table = { '2M': {
                     'lower_edge':144000000,
                     'upper_edge':148000000,
                         'offset':0,
-                      'band_pin':26,
-                       'ptt_pin':21,
+                          'band':0b00010001,
+                           'ptt':0b00000001,
                 },
                 '70cm': {
                     'lower_edge':231000000,
                     'upper_edge':251000000,
-                        'offset':199000000,
-                      'band_pin':19,
-                       'ptt_pin':20,
+                        'offset':199000000,                  
+                          'band':0b00000010,
+                           'ptt':0b00000010,
                 },
                 '23cm': {
                     'lower_edge':351000000,
                     'upper_edge':411000000,
                         'offset':889000000,
-                      'band_pin':13,
-                       'ptt_pin':16,
+                          'band':0b00000100,
+                           'ptt':0b00000100,
                 },
                 '13cm': {
                     'lower_edge':562000000,
                     'upper_edge':712000000,
                         'offset':1738000000,
-                      'band_pin':6,
-                       'ptt_pin':12,
+                          'band':0b00001000,
+                           'ptt':0b00001000,
                 },
                 '6cm': {
                     'lower_edge':963000000,
                     'upper_edge':1238000000,
                         'offset':4687000000,
-                      'band_pin':5,
-                       'ptt_pin':1,
+                          'band':0b00010000,
+                           'ptt':0b00010000,
                 },
                 '3cm': {
                     'lower_edge':2231000000,
                     'upper_edge':2251000000,
                         'offset':99989000000,
-                      'band_pin':0,
-                       'ptt_pin':7,
+                          'band':0b00100000,
+                           'ptt':0b00100000,
                 }
             }
-    
-    
+            
+# GPIO pin assignments.  We use up to 6 pins for band output and up to 6 for PTT
+# BCD mode will use fewer pins and the extras will be ignored
+# set the inversion this to match your hardware.  Buffering usually inverts the logic
+
+IO_table = {     
+                 0x01 : {
+                      'band_pin':26,
+                   'band_invert':False,
+                       'ptt_pin':21,
+                    'ptt_invert':False,
+                 },
+                 0x02 : {
+                      'band_pin':19,                       
+                   'band_invert':False,
+                       'ptt_pin':20,
+                    'ptt_invert':False,
+                 },
+                 0x04 : {
+                      'band_pin':13,
+                   'band_invert':False,
+                       'ptt_pin':16,
+                    'ptt_invert':True,
+                 },
+                 0x08 : {
+                      'band_pin':6,
+                   'band_invert':False,
+                       'ptt_pin':12,
+                    'ptt_invert':False,
+                 },
+                 0x10: {
+                      'band_pin':5,
+                   'band_invert':False,
+                       'ptt_pin':1,
+                    'ptt_invert':False,
+                 },
+                 0x20 : {
+                      'band_pin':0,
+                   'band_invert':False,
+                       'ptt_pin':7,
+                    'ptt_invert':False,
+                }
+            }
+
+#
 #  __________________________________________________________________
 #    
 #  GPIO outputs for Band and PTT
@@ -87,37 +136,79 @@ Freq_table = { '2M': {
 #
     
 class OutputHandler:     
-    
+
     def gpio_config(self):
         GPIO.setmode(GPIO.BCM)
-        for __band_name in Freq_table:
-            # Found a band match, set io pins to output mode
-            GPIO.setup(Freq_table[__band_name]['band_pin'], GPIO.OUT, initial=GPIO.LOW) 
-            GPIO.setup(Freq_table[__band_name]['ptt_pin'],  GPIO.OUT, initial=GPIO.LOW)
+        for i in IO_table:       
+            band_pin = IO_table[i]['band_pin']
+            ptt_pin = IO_table[i]['ptt_pin']
+            #print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin", ptt_pin)
+            GPIO.setup(band_pin, GPIO.OUT, initial=GPIO.LOW) 
+            GPIO.setup(ptt_pin,  GPIO.OUT, initial=GPIO.LOW)
         print("GPIO pin mode setup complete")
                 
 
+    # TODO : Apply inversion var and bitmaskfor position
     def ptt_io_output(self, band, ptt):
         for __band_name in Freq_table:
             if (__band_name == band):
-                # Found a band match, set io pin
-                GPIO.output(Freq_table[__band_name]['ptt_pin'], ptt)
-                print("******* PTT Output for", __band_name, "PTT state", ptt)
+                band_pattern = Freq_table[__band_name]['ptt']
+                # Found a band match, set ptt io pin(s)
+                if ptt:
+                    p = bd.colored(255,0,0,"(+TX++)")
+                else:
+                    p = bd.colored(45,255,95,"(-RX--)")
+                b = bd.colored(255,235,145, format(str(band),"5"))
+                bp = bd.colored(0,255,255, format(band_pattern,'06b'))
+                print(p+" Output for "+b+" Pattern:"+bp)   
+                template = 0x0000
+                
+                for __pins in IO_table:
+                    pin_invert = IO_table[__pins]['ptt_invert']
+                    io_pin     = IO_table[__pins]['ptt_pin']
+                    pin_state  = (band_pattern & __pins) | template
+                    
+                    if pin_state:
+                        pin_state = ptt
+                    
+                    if pin_invert:
+                        pin_state = pin_state ^ 1 # invert the pin    
+                        #print("pin state after inversion:", int(pin_state))    
+                        
+                    #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
+                
+                    GPIO.output(io_pin, pin_state)  # set our pin
 
 
+    # TODO : Apply inversion var and bit mask for position
     def band_io_output(self, band):
-        # turn off all band outputs
-        for __band_name in Freq_table:
-            GPIO.output(Freq_table[__band_name]['band_pin'], 0)
-        
         # turn on selected band output
         for __band_name in Freq_table:
             if (__band_name == band):
-                # Found a band match, set io pin
-                GPIO.output(Freq_table[__band_name]['band_pin'], 1)
-                print("------- BAND Output for", band) 
-
-
+                band_pattern = Freq_table[__band_name]['band']
+                # Found a band match, now loop through the set of IO pins
+                t = bd.colored(235,110,200, "(BAND )")
+                b = bd.colored(255,225,145, format(str(band),"5"))
+                p = bd.colored(0,255,255, format(band_pattern,'06b'))
+                print(t+" Output for "+b+" Pattern:"+p)
+                template = 0x0000
+                
+                for __pins in IO_table:
+                    pin_invert = IO_table[__pins]['band_invert']
+                    io_pin     = IO_table[__pins]['band_pin']
+                    pin_state  = (band_pattern & __pins) | template
+                    
+                    if pin_state:
+                        pin_state = 1
+                    
+                    if pin_invert:
+                        pin_state = pin_state ^ 1 # invert the pin    
+                        #print("pin state after inversion:", int(pin_state))    
+                        
+                    #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
+                    GPIO.output(io_pin, pin_state)
+                
+                    
 #  __________________________________________________________________
 #    
 #  Packet data processing functions
@@ -166,16 +257,18 @@ class BandDecoder(OutputHandler):
         
         
     def p_status(self, TAG):       
-        print("("+TAG+") VFOA Band:", format(self.vfoa_band,"4"),
-            " A:"+format(self.selected_vfo, "11"), 
-            " B:"+format(self.unselected_vfo, "11"),
-            " Split:"+format(self.split_status, "1"), 
+        
+        print(bd.colored(155,180,200,"("+TAG+")"),
+            " VFOA Band:"+bd.colored(255,225,145,format(self.vfoa_band,"4")),
+            " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")), 
+            " B:"+bd.colored(225,225,225,format(self.unselected_vfo, "11")),
+            " Split:"+bd.colored(225,255,90,format(self.split_status, "1")), 
             " M:"+format(self.modeA, "1"),
             " F:"+format(self.filter, "1"),
             " D:"+format(self.datamode, "1"),
             " P:"+format(self.preamp_status, "1"),
             " A:"+format(self.atten_status, "1"),
-            " PTT:"+format(self.ptt_state, "1"),
+            " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
             #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus,and.or when there is spectrum flowing not sure which
             " Src:0x"+format(self.payload_ID, "04x"))
     
@@ -381,34 +474,51 @@ class BandDecoder(OutputHandler):
             self.ptt_state = self.payload_copy[0x00ef]
             #print("PTT state = ", self.ptt_state)
             if (self.ptt_state != self.__ptt_state_last):
+                
                 if (self.ptt_state == 1):  # do not TX if the band is still unknown (such as at startup)
                     #print("VFO A Band = ", self.vfoa_band, " ptt_state is TX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
                     if (self.split_status == 1): # swap selected and unselected when split is on during TX
                         self.__vfoa_band_split_Tx = self.vfoa_band  # back up the original VFOa band
                         self.__selected_vfo_split_Tx = self.selected_vfo  # back up original VFOa
                         self.selected_vfo = self.unselected_vfo  # during TX assign b to a
-                        self.vfoa_band = self.vfob_band
-                        self.p_status(" PTT ")
-                        self.band_io_output(self.vfoa_band)
-                        time.sleep(self.PTT_hang_time)
-                        print("Delay:",self.PTT_hang_time,"sec")
+                        self.vfoa_band = self.vfob_band                        
+                        
+                        # skip the band switch and delay if on the same band
+                        if (self.vfoa_band != self.__vfoa_band_split_Tx):                            
+
+                            self.p_status("SPLtx")
+                            self.band_io_output(self.vfoa_band)
+                            time.sleep(self.PTT_hang_time)
+                            print("Delay:",self.PTT_hang_time,"sec")
+                        else:
+                            self.p_status(" DUP ")
+                        
                         self.ptt_io_output(self.vfoa_band, self.ptt_state)
                     else:
                         self.p_status(" PTT ")
                         self.ptt_io_output(self.vfoa_band, self.ptt_state)
+                
                 if (self.ptt_state == 0):
                     #print("VFO A Band = ", self.vfoa_band, " ptt_state is RX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
                     if (self.split_status == 1): # swap selected and unselected when split is on during TX
                         self.vfoa_band = self.__vfoa_band_split_Tx
                         self.selected_vfo = self.__selected_vfo_split_Tx
-                        self.p_status(" PTT ")
-                        self.ptt_io_output(self.vfoa_band, self.ptt_state)
-                        time.sleep(self.PTT_hang_time)
-                        print("Delay:",self.PTT_hang_time,"sec")
-                        self.band_io_output(self.vfoa_band)
+                        
+                        # skip the band switch and delay if on the same band
+                        if (self.vfoa_band != self.vfob_band):                                                        
+                            self.p_status("SplRx")                        
+                            self.ptt_io_output(self.vfoa_band, self.ptt_state)
+                            time.sleep(self.PTT_hang_time)
+                            print("Delay:",self.PTT_hang_time,"sec")
+                            self.band_io_output(self.vfoa_band)
+                        else:
+                            #self.p_status(" DUP ")
+                            self.ptt_io_output(self.vfoa_band, self.ptt_state)
+                            pass
                     else:
-                        self.p_status(" PTT ")
+                        #self.p_status(" PTT ")
                         self.ptt_io_output(self.vfoa_band, self.ptt_state)
+                
                 self.__ptt_state_last = self.ptt_state
 
 
@@ -432,6 +542,9 @@ class BandDecoder(OutputHandler):
         __payload_len = len(self.payload_copy)
         print("(case_default) Unknown message,ID:0x"+format(self.payload_ID,'04x')+"  Length:", __payload_len)
         return "no match found"
+        
+    def colored(self, r, g, b, text):
+        return f"\033[38;2;{r};{g};{b}m{text}\033[0m"
 
 #
 #   End of class BandDecoder
