@@ -31,29 +31,40 @@ The long term setup for me will use 2 managed switches, my main shack 16-port TL
 
 As of Feb 5, 2025 there are now 3 means to extract the PTT and frequency events.  
 
-The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cpa905 output is piped to Proc905.py.
+The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cpa905 output is piped to Proc905.py.  It is now in the Archive Folder
 
-A standalone Python program is now available called TCP905.py.  It uses scapy module to prefilter data based on packet lengths of interest as before.  The tcp packet payload is extracted and parsed for PTT and frequency data.  IT was run on Python 3.9. 
+A standalone Python program TCP905.py was next.  It uses scapy module to prefilter data based on packet lengths of interest as before.  The TCP packet payload is extracted and parsed for PTT and frequency data.  It was run on Python 3.9.  It is now in the Archive folder.
 
-TCP905v2.py uses message ID based processing instead of packet lengths and is easier to add and extend.  It requires Python 3.10 or higher.  I tested on v3.12.3 in Python's virtual dev environment.   On my system I have to run the program as sudo or else I get access denied from the the network layer I think.  In the Python virtual env the command line looks like this:
-        
-    sudo /home/pi/venv/bin/python ./TCP905v2.py
-
-The programs here are tested on a Pi4B and intended to learn (enough) about the 905 ethernet communication to operate a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  Once the information needed is deemed reliable, I will extend the script to operate GPIO pins to activate relays for antenna switching and perhaps amplifier selection and PTT.   GPIO pins will operate relays or oter IO devices based on selected band and PTT state.   I have a relay Pi 'hat' with 3 relays on a Pi3B for example.  I will also set up BCD to talk to my 905 remote decoder board for 16 outputs (12 used - 6 PTT and 6 Band).
-
-![{EE40D230-11FF-4F5E-8067-A364F71EF05C}](https://github.com/user-attachments/assets/31102ccb-c4db-4b01-8da7-b14b4ef1c24f)
-
+The standalone Python TCP905v2.py program is the current version and uses message ID based processing instead of packet lengths and is easier to add and extend.  It requires Python 3.10 or higher.  I tested on v3.12.3 in Python's virtual dev environment on my PC and on Python 3.11 (not in a viirtual env) that came with the Pi OS Lite on a Pi3B.   
 
 ### TCP905v2.py Usage  (Current Dev)
 
 I have created a Wiki page Building the Project for how to build and configure the program to run on a remote RPi board.
 https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Building-the-Project
 
-This Wiki page (and others)  https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO  shows how to configure the code and hardware for GPIO ouotput to control things like antenna switches and amplifier keying. 
+This uses a Pi 3B or Pi 4B to run our Band Decoder program and uses the GPIO pins to control relays and such.  The CPU must be connected so that it can monitor the TCP-IP traffic between the IC-905 control head and it's RF Unit.  I use a managed ethernet switch with VLAN and port mirrorng. The Pi plugs into the mirror port.
 
-detail how to configure the GPIO output with examples for a PiHat Relay board and using a direct connection ot my 905 USB Band decoder project Remote BCD decoder board which provides 6 buffered BAND outputs and 6 buffered PTT outputs for 6 bands.
+Here is how to set up a Pi 3B or Pi 4B to run the software 
+https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Setup-on-a-Pi3B
 
-This is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and 3rd payload bytes as the message ID.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally between 0 and 3 with a few exceptions.   
+This Wiki page (and others) https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO  shows how to configure the code and hardware for GPIO ouotput to control things like antenna switches and amplifier keying. 
+
+We have to run the program as sudo or you get access denied from the the network layer I think.  Assuming you are in the folder where you installed the TP905v2.py program, in the Python virtual env the command line looks like this:
+        
+    sudo /home/pi/venv/bin/python ./TCP905v2.py
+
+Without the venv, it is just:
+
+    sudo python TCP905v2.py
+
+The programs here are tested on a Windows PC and Pi 4B with Python 3.12.3 in the venv, and on a stripped down Pi 3B. It monitors the 905's RF Unit ethernet communication to operate as a band decoder located at or near the RF Unit, or a least close to it depending on where power for the POE inserter is located.  GPIO pins activate relays for antenna switching and perhaps amplifier selection and PTT.   GPIO pins will operate relays or other IO devices based on selected band and PTT state.   I have a relay Pi 'hat' with 3 relays on a Pi3B for example.  There is GPIO configuration information for direct, custom, and BCD output control patterns on this site's Wiki pages.  The BCD example will talk to my 905 Remote BCD Decoder board to provide 12 outputs, 6 PTT and 6 for Band.
+
+![{EE40D230-11FF-4F5E-8067-A364F71EF05C}](https://github.com/user-attachments/assets/31102ccb-c4db-4b01-8da7-b14b4ef1c24f)
+
+
+Details are provided here https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO about how to configure the GPIO output with examples for a PiHat Relay board and using a direct connection to my 905 USB Band decoder project Remote BCD decoder board which provides 6 buffered BAND outputs and 6 buffered PTT outputs for 6 bands.
+
+This versoin program is the same as TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and 3rd payload bytes as the message ID.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally between 0 and 3 with a few exceptions.   
 
 I have mapped out just about every required packet for reliable band decoding and PTT and weeded out the ones that are not useful.  In a few cases the same ID message presented totally different kinds of data.  I found a few more bytes to differentiate them and keep things clean.  Seem pretty robust now.  
 
