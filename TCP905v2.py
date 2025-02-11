@@ -25,8 +25,10 @@ from scapy.all import *
 import sys
 import numpy as np
 from time import sleep
-import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO 
   
+  
+#  Freq_table:
 #  These band edge frequency values are based on the radio message VFO
 #    values which have no offset applied
 #  We use this value then once we know the band we can add the
@@ -35,17 +37,31 @@ import RPi.GPIO as GPIO
 #  The 10G band values in this table are just dummy values until
 #    the 10G transverter is hooked up to observe the actual values
 
-# The band and ptt values are the mapping to the group of 6 pins 
-#    for band and 6 pins for ptt
-#    Set the pin(s) yuo want activated when the band is active
-# At startup all wil be 0 then initialized once the band is first determined
-# In the IO-Table below are the pin assignmant and whether they are inverted or not
+# The band and ptt values are the mapping to the group of 
+#    6 pins for band and 6 pins for ptt
+#    Set the pin value(s) = 1 that you want activated when the band is active
+#    There is an inversion flag to corert for buffer inversions
+
+# At startup all pins will be set to 0 then initialized once the band 
+#    is first determined.
+
+# For BCD output to the Remote BCD Decoder board, edit the band
+#    values = 0 through 5 so only using 3 io pins
+#    and ptt values will all be set to 1 using only 1 io pin
+# Example values for BCD decoder
+#   2M decimal   0 or in binary format 0b0000000
+#   70cm decimal 1 or in binary format 0b0000001
+#   23cm decimal 2 or in binary format 0b0000010
+#   13cm decimal 3 or in binary format 0b0000011
+#    6cm decimal 4 or in binary format 0b0000100
+#    3cm decimal 5 or in binary format 0b0000101
+# Set all bands ptt to decimal 1 or in binary format 0b0000001
 
 Freq_table = { '2M': {
                     'lower_edge':144000000,
                     'upper_edge':148000000,
                         'offset':0,
-                          'band':0b00010001,
+                          'band':0b00000001,
                            'ptt':0b00000001,
                 },
                 '70cm': {
@@ -84,8 +100,13 @@ Freq_table = { '2M': {
                            'ptt':0b00100000,
                 }
             }
-            
-# GPIO pin assignments.  We use up to 6 pins for band output and up to 6 for PTT
+
+# IO-Table:           
+# These are the GPIO pin assignments fo BAND and PTT outputs.
+# 1 or more pins may be assigned to any band so they are not band specific.
+# The band and ptt keys int eh Freq_table map the bank of pins to a band
+
+# We use up to 6 pins for band output and up to 6 for PTT
 # BCD mode will use fewer pins and the extras will be ignored
 # set the inversion this to match your hardware.  Buffering usually inverts the logic
 
@@ -259,9 +280,9 @@ class BandDecoder(OutputHandler):
     def p_status(self, TAG):       
         
         print(bd.colored(155,180,200,"("+TAG+")"),
-            " VFOA Band:"+bd.colored(255,225,145,format(self.vfoa_band,"4")),
+            " VFOA Band:"+bd.colored(255,225,165,format(self.vfoa_band,"4")),
             " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")), 
-            " B:"+bd.colored(225,225,225,format(self.unselected_vfo, "11")),
+            " B:"+bd.colored(215,215,215,format(self.unselected_vfo, "11")),
             " Split:"+bd.colored(225,255,90,format(self.split_status, "1")), 
             " M:"+format(self.modeA, "1"),
             " F:"+format(self.filter, "1"),
