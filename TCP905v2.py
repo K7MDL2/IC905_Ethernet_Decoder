@@ -205,7 +205,7 @@ class OutputHandler:
                         pin_state = pin_state ^ 1 # invert the pin
                         #print("pin state after inversion:", int(pin_state))
 
-                    print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
+                    #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
 
                     GPIO.output(io_pin, pin_state)  # set our pin
 
