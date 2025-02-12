@@ -1,33 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  TCP905v2.py  
-#  
+#  TCP905v2.py
+#
 #  Feb 2025 K7MDL
-#  
+#
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
-#  
-#  
+#
+#
 from scapy.all import *
 import sys
 import numpy as np
 from time import sleep
-import RPi.GPIO as GPIO 
-  
-  
+import RPi.GPIO as GPIO
+
+
 #  Freq_table:
 #  These band edge frequency values are based on the radio message VFO
 #    values which have no offset applied
@@ -37,12 +37,12 @@ import RPi.GPIO as GPIO
 #  The 10G band values in this table are just dummy values until
 #    the 10G transverter is hooked up to observe the actual values
 
-# The band and ptt values are the mapping to the group of 
+# The band and ptt values are the mapping to the group of
 #    6 pins for band and 6 pins for ptt
 #    Set the pin value(s) = 1 that you want activated when the band is active
 #    There is an inversion flag to corert for buffer inversions
 
-# At startup all pins will be set to 0 then initialized once the band 
+# At startup all pins will be set to 0 then initialized once the band
 #    is first determined.
 
 # For BCD output to the Remote BCD Decoder board, edit the band
@@ -57,119 +57,124 @@ import RPi.GPIO as GPIO
 #    3cm decimal 5 or in binary format 0b0000101
 # Set all bands ptt to decimal 1 or in binary format 0b0000001
 
+# thsi is set up for 3 wire BCD + 1 wire PTT for the Remote Decdoer board
 Freq_table = { '2M': {
                     'lower_edge':144000000,
                     'upper_edge':148000000,
                         'offset':0,
-                          'band':0b00000001,
+                          'band':0b00000000,
                            'ptt':0b00000001,
                 },
                 '70cm': {
                     'lower_edge':231000000,
                     'upper_edge':251000000,
-                        'offset':199000000,                  
-                          'band':0b00000010,
-                           'ptt':0b00000010,
+                        'offset':199000000,
+                          'band':0b00000001,
+                           'ptt':0b00000001,
                 },
                 '23cm': {
                     'lower_edge':351000000,
                     'upper_edge':411000000,
                         'offset':889000000,
-                          'band':0b00000100,
-                           'ptt':0b00000100,
+                          'band':0b00000010,
+                           'ptt':0b00000001,
                 },
                 '13cm': {
                     'lower_edge':562000000,
                     'upper_edge':712000000,
                         'offset':1738000000,
-                          'band':0b00001000,
-                           'ptt':0b00001000,
+                          'band':0b00000011,
+                           'ptt':0b00000001,
                 },
                 '6cm': {
                     'lower_edge':963000000,
                     'upper_edge':1238000000,
                         'offset':4687000000,
-                          'band':0b00010000,
-                           'ptt':0b00010000,
+                          'band':0b00000100,
+                           'ptt':0b00000001,
                 },
                 '3cm': {
                     'lower_edge':2231000000,
                     'upper_edge':2251000000,
                         'offset':99989000000,
-                          'band':0b00100000,
-                           'ptt':0b00100000,
+                          'band':0b00000101,
+                           'ptt':0b00000001,
                 }
             }
 
-# IO-Table:           
-# These are the GPIO pin assignments fo BAND and PTT outputs.
+# IO-Table:
+# These are the GPIO pin assignments of BAND and PTT outputs.
 # 1 or more pins may be assigned to any band so they are not band specific.
-# The band and ptt keys int eh Freq_table map the bank of pins to a band
+# The band and ptt keys in the Freq_table map the bank of pins to a band
 
 # We use up to 6 pins for band output and up to 6 for PTT
 # BCD mode will use fewer pins and the extras will be ignored
 # set the inversion this to match your hardware.  Buffering usually inverts the logic
 
-IO_table = {     
+# The 3 relay HAT I have uses pin CH1=26  CH2=20  CH3=21 (25, , 28, 29 using Wiring Pi numbers on the board
+
+# This is set up for  3-wire BCD Band and 1-wire PTT for the Remote BCD DEcdoer board
+IO_table = {
                  0x01 : {
-                      'band_pin':26,
-                   'band_invert':False,
-                       'ptt_pin':21,
-                    'ptt_invert':False,
+                      'band_pin':4,
+                   'band_invert':True,
+                       'ptt_pin':17,
+                    'ptt_invert':True,
                  },
                  0x02 : {
-                      'band_pin':19,                       
-                   'band_invert':False,
-                       'ptt_pin':20,
-                    'ptt_invert':False,
+                      'band_pin':3,
+                   'band_invert':True,
+                       'ptt_pin':0,
+                    'ptt_invert':True,
                  },
                  0x04 : {
-                      'band_pin':13,
-                   'band_invert':False,
-                       'ptt_pin':16,
+                      'band_pin':2,
+                   'band_invert':True,
+                       'ptt_pin':0,
                     'ptt_invert':True,
                  },
                  0x08 : {
-                      'band_pin':6,
-                   'band_invert':False,
-                       'ptt_pin':12,
-                    'ptt_invert':False,
+                      'band_pin':0,
+                   'band_invert':True,
+                       'ptt_pin':0,
+                    'ptt_invert':True,
                  },
                  0x10: {
-                      'band_pin':5,
-                   'band_invert':False,
-                       'ptt_pin':1,
-                    'ptt_invert':False,
+                      'band_pin':0,
+                   'band_invert':True,
+                       'ptt_pin':0,
+                    'ptt_invert':True,
                  },
                  0x20 : {
                       'band_pin':0,
-                   'band_invert':False,
-                       'ptt_pin':7,
-                    'ptt_invert':False,
+                   'band_invert':True,
+                       'ptt_pin':0,
+                    'ptt_invert':True,
                 }
             }
 
 #
 #  __________________________________________________________________
-#    
+#
 #  GPIO outputs for Band and PTT
 #  __________________________________________________________________
 #
-    
-class OutputHandler:     
+
+class OutputHandler:
 
     def gpio_config(self):
         GPIO.setmode(GPIO.BCM)
-        for i in IO_table:       
+        for i in IO_table:
             band_pin = IO_table[i]['band_pin']
+            band_invert =  IO_table[i]['band_invert']
             ptt_pin = IO_table[i]['ptt_pin']
-            #print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin", ptt_pin)
-            GPIO.setup(band_pin, GPIO.OUT, initial=GPIO.LOW) 
-            GPIO.setup(ptt_pin,  GPIO.OUT, initial=GPIO.LOW)
+            ptt_invert = IO_table[i]['ptt_invert']
+            print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin", ptt_pin)
+            GPIO.setup(band_pin, GPIO.OUT, initial=band_invert)
+            GPIO.setup(ptt_pin,  GPIO.OUT, initial=ptt_invert)
         print("GPIO pin mode setup complete")
-                
 
-    # TODO : Apply inversion var and bitmaskfor position
+
     def ptt_io_output(self, band, ptt):
         for __band_name in Freq_table:
             if (__band_name == band):
@@ -179,29 +184,33 @@ class OutputHandler:
                     p = bd.colored(255,0,0,"(+TX++)")
                 else:
                     p = bd.colored(45,255,95,"(-RX--)")
+
                 b = bd.colored(255,235,145, format(str(band),"5"))
                 bp = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(p+" Output for "+b+" Pattern:"+bp)   
-                template = 0x0000
-                
+                print(p+" Output for "+b+" Pattern:"+bp)
+
+                if (ptt):
+                    ptt = 0xff
+                else:
+                    ptt = 0x00
+
                 for __pins in IO_table:
                     pin_invert = IO_table[__pins]['ptt_invert']
                     io_pin     = IO_table[__pins]['ptt_pin']
-                    pin_state  = (band_pattern & __pins) | template
-                    
-                    if pin_state:
-                        pin_state = ptt
-                    
+                    pin_state  = (band_pattern & __pins & ptt)
+
+                    pin_state = bool(pin_state)   # convert decimal number to a boolean value
+
                     if pin_invert:
-                        pin_state = pin_state ^ 1 # invert the pin    
-                        #print("pin state after inversion:", int(pin_state))    
-                        
-                    #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
-                
+                        pin_state = pin_state ^ 1 # invert the pin
+                        #print("pin state after inversion:", int(pin_state))
+
+                    print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
+
                     GPIO.output(io_pin, pin_state)  # set our pin
 
 
-    # TODO : Apply inversion var and bit mask for position
+
     def band_io_output(self, band):
         # turn on selected band output
         for __band_name in Freq_table:
@@ -213,31 +222,32 @@ class OutputHandler:
                 p = bd.colored(0,255,255, format(band_pattern,'06b'))
                 print(t+" Output for "+b+" Pattern:"+p)
                 template = 0x0000
-                
+
                 for __pins in IO_table:
                     pin_invert = IO_table[__pins]['band_invert']
                     io_pin     = IO_table[__pins]['band_pin']
-                    pin_state  = (band_pattern & __pins) | template
-                    
+                    pin_state  = (band_pattern & __pins)
+
                     if pin_state:
                         pin_state = 1
-                    
+                    else:
+                        pin_state = 0
+
                     if pin_invert:
-                        pin_state = pin_state ^ 1 # invert the pin    
-                        #print("pin state after inversion:", int(pin_state))    
-                        
+                        pin_state = pin_state ^ 1 # invert the pin
+                        #print("pin state after inversion:", int(pin_state))
+
                     #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
                     GPIO.output(io_pin, pin_state)
-                
-                    
+
 #  __________________________________________________________________
-#    
+#
 #  Packet data processing functions
 #  __________________________________________________________________
 #
 
 class BandDecoder(OutputHandler):
-# We are inheriting from OutputHandler class so we can access its functions 
+# We are inheriting from OutputHandler class so we can access its functions
 #   and variables as if they were our own.
     def __init__(self):
         self.vfoa_band = ""
@@ -258,14 +268,14 @@ class BandDecoder(OutputHandler):
         self.payload_Attrib_byte = 0
         self.__freq_last = 0
         self.__vfoa_band_last = 0
-        self.__ptt_state_last = 255 
+        self.__ptt_state_last = 255
         self.modeA = 255
         self.filter = 255
         self.datamode = 255
         self.in_menu = 0
         self.PTT_hang_time = 0.3
-        
-        
+
+
     def check_msg_valid(self):
         if (self.payload_ID != 0xa803):
             if (self.payload_copy[0x000a] != 0x44 and
@@ -275,15 +285,15 @@ class BandDecoder(OutputHandler):
             else:
                 #print("Accepted message from ID", format(self.payload_ID, "04x"))
                 return 0   # return 1 for bad, 0 for good
-        
-        
-    def p_status(self, TAG):       
-        
+
+
+    def p_status(self, TAG):
+
         print(bd.colored(155,180,200,"("+TAG+")"),
             " VFOA Band:"+bd.colored(255,225,165,format(self.vfoa_band,"4")),
-            " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")), 
+            " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")),
             " B:"+bd.colored(215,215,215,format(self.unselected_vfo, "11")),
-            " Split:"+bd.colored(225,255,90,format(self.split_status, "1")), 
+            " Split:"+bd.colored(225,255,90,format(self.split_status, "1")),
             " M:"+format(self.modeA, "1"),
             " F:"+format(self.filter, "1"),
             " D:"+format(self.datamode, "1"),
@@ -292,21 +302,21 @@ class BandDecoder(OutputHandler):
             " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
             #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus,and.or when there is spectrum flowing not sure which
             " Src:0x"+format(self.payload_ID, "04x"))
-    
-    
-    # If we see corrupt values then look at the source.  
-    # Some messages are overloaded - meaning they can have radio 
+
+
+    # If we see corrupt values then look at the source.
+    # Some messages are overloaded - meaning they can have radio
     #   status or have other spectrum like data in the same length
     #   and ID+Attrib combo/   Calling check_msg_valid to filter out
     #   bad stuff based on observed first row byte patterns
-    
-    def case_x18(self):  # process items in message id # 0x18               
+
+    def case_x18(self):  # process items in message id # 0x18
         #hexdump(self.payload_copy)
         #print("(ID:18) Length",self.payload_len)
-        
+
         if self.check_msg_valid():
             return
-        
+
         self.split_status = self.payload_copy[0x001b] # message #0xd400 @ 0x0001
         # There is no preamp or atten on bands above 23cm
         if (self.vfoa_band == "13cm" or self.vfoa_band == "6cm"):
@@ -324,17 +334,17 @@ class BandDecoder(OutputHandler):
 
 
     # get this message when split is changed
-    #  x18 has the status 
+    #  x18 has the status
     # process items in message #0xd4 0x00
     # attr = 01 is long and mostly zeros
     # d400 can be filled with other type data on some occasions, maybe band specific, not sure.
-    def case_xD4(self):    
+    def case_xD4(self):
         #hexdump(self.payload_copy)
         #print("(ID:D4) Length",self.payload_len)
-        
+
         if self.check_msg_valid():
             return
-        
+
         self.split_status = self.payload_copy[0x001b] # message #0xd400 @ 0x0001
         #self.split_status = self.payload_copy[0x00b3] # message #0xd400 @ 0x0001
         self.modeA = self.payload_copy[0x00bc]
@@ -345,11 +355,11 @@ class BandDecoder(OutputHandler):
         #self.p_status("ID:D4") # print out our state
 
 
-    # convert little endian bytes to int frequency 
-    # vfo is the starting address for desired in the payload 
+    # convert little endian bytes to int frequency
+    # vfo is the starting address for desired in the payload
     def get_freq(self, payload, vfo):
         freq_hex_dec = np.array([0, 0, 0, 0],dtype=np.uint8)
-            
+
         for i in range(0, 4, 1):
             freq_hex_dec[i] = (payload[vfo+i])
         #print(freq_hex_dec)
@@ -357,7 +367,7 @@ class BandDecoder(OutputHandler):
         # Convert from ascii array to binary hex byte string
         freq_hex_str = freq_hex_dec.tobytes()
         #print(freq_hex_str)
-        
+
         # Flip from little to big endian
         byte_data = bytes(freq_hex_str)
         little_endian_bytes = byte_data[::-1]
@@ -372,10 +382,10 @@ class BandDecoder(OutputHandler):
         #print("(Freq) Freq from ID:",format(self.payload_ID,"02x"))
         #hexdump(self.payload_copy)
         #print("Length",self.payload_len)
-        
+
         if self.check_msg_valid():
             return
-        
+
         # Duplex used split status byte for VFO swap, just has vfoB set different with offset
         # split is updated in message ID 0xD4.  Here we can also pick it up and not wait for 
         # someone to press the split button to generate the d4 event.
@@ -390,20 +400,20 @@ class BandDecoder(OutputHandler):
             vfob = 0x00c4
             self.split_status  = self.payload_copy[0x001b]
             # collect premp and atten via other messages.
-        
+
         self.modeA  = self.payload_copy[vfoa+4]
         self.filter = self.payload_copy[vfoa+5]+1
         self.datamode = self.payload_copy[vfoa+6]
-    
+
         if (self.vfoa_band == "13cm" or self.vfoa_band == "6cm"):
             self.atten_status = 0
             self.preamp_status = 0
-        
+
         np.set_printoptions(formatter={'int':hex})
-        
-        # Returns the payload hex converted to int.  
+
+        # Returns the payload hex converted to int.
         # This need to have the band offset applied next
-        __vfoa = self.get_freq(self.payload_copy, vfoa) 
+        __vfoa = self.get_freq(self.payload_copy, vfoa)
         #print("(Freq) VFO A = ", vfoa)
         __vfob = self.get_freq(self.payload_copy, vfob)
         #print("(Freq) VFO B = ", vfob)
@@ -415,14 +425,14 @@ class BandDecoder(OutputHandler):
                 if (__vfoa >= Freq_table[__band_name]['lower_edge'] and
                     __vfoa <= Freq_table[__band_name]['upper_edge'] ):
                     # Found a band match, print out the goods
-                    self.__offset = Freq_table[__band_name]['offset'] 
+                    self.__offset = Freq_table[__band_name]['offset']
                     self.selected_vfo = __vfoa + self.__offset
                     self.vfoa_band = __band_name
-                    
+
                 if (__vfob >= Freq_table[__band_name]['lower_edge'] and
                     __vfob <= Freq_table[__band_name]['upper_edge'] ):
                     # Found a band match, print out the goods
-                    self.__offset = Freq_table[__band_name]['offset'] 
+                    self.__offset = Freq_table[__band_name]['offset']
                     self.unselected_vfo = __vfob + self.__offset
                     self.vfob_band = __band_name
 
@@ -430,37 +440,37 @@ class BandDecoder(OutputHandler):
             #print("  Lower edge = ", Freq_table[self.vfoa_band]['lower_edge'] + self.__offset,
             #      "  Upper edge = ", Freq_table[self.vfoa_band]['upper_edge'] + self.__offset,
             #      "  Offset = ", self.__offset)
-            
+
             #  set band outputs on band changes
             if (self.vfoa_band != self.__vfoa_band_last):
                 self.band_io_output(self.vfoa_band)
                 self.__vfoa_band_last = self.vfoa_band
-            
+
             self.__freq_last = __vfoa
         else:
             self.p_status("FREQ ") # print out our state
-        
+
         return self.vfoa_band
-      
-        
+
+
     # When spectrum is enabled AND there is noise+signal > ref line
     #   dump spectrum data in 0xe8001
     #  bytes 0000-0011 never change spectrum starts a 0x0012
     def spectrum(self):
-        #hexdump(s"(spectrum)"elf.payload_copy)   
+        #hexdump(s"(spectrum)"elf.payload_copy)
         pass
-      
-      
+
+
     # 0x2c 0x00 - get at start of PTT and occaionally in RX
     # 0x2c 0x01 - get at most(but not all) mode changes.  Some are skipped.
     #      at pos 0x08 always = 0x24
     #      attr byte 8   byte 9   byte A  byte B   byte bd
     #      0x01 24       0x01     44      00       4 = RTTY   FM,SSB mode, mo msg for cw
-    #      0x01 24       0x01     44      00       1 = USB   
-    #      0x01 24       0x01     44      00       7 = FM   
+    #      0x01 24       0x01     44      00       1 = USB
+    #      0x01 24       0x01     44      00       7 = FM
     #      0x01 24       0x01     44      00       8 = DV then
     #           24         01     c0      02    in DV and often repeats and has gps data in place of frequency and mode, still 308 long
-    #  Goes bad 
+    #  Goes bad
     #      0x01 24         01     C0      02      garbage
     #   0 is LSB
     #   2 is cw
@@ -469,43 +479,43 @@ class BandDecoder(OutputHandler):
         #  must be some other primary event
         #hexdump(self.payload_copy)
         #print("Length",self.payload_len)
-        
+
         if self.check_msg_valid():
             return
-                
+
         self.split_status = self.payload_copy[0x00b3] # message #0xd400 @ 0x0001
         self.modeA  = self.payload_copy[0x00bc]
         self.filter = self.payload_copy[0x00bd]+1
         self.datamode = self.payload_copy[0x00be]
         self.frequency()
 
-        
-    # PTT sequence 
+
+    # PTT sequence
     # 0xe8-00 - see Github Wiki pages for examples of mesaage ID flow
-    # 0xe8-01 is spectrum data 
-    def ptt(self): 
+    # 0xe8-01 is spectrum data
+    def ptt(self):
         #hexdump(self.payload_copy)
         #print("Length",self.payload_len)
-        
+
         if self.check_msg_valid():
             return
-        
+
         # watch for PTT value changes
         if (self.vfoa_band != ""):   # block PTT until we know what band we are on
             self.ptt_state = self.payload_copy[0x00ef]
             #print("PTT state = ", self.ptt_state)
             if (self.ptt_state != self.__ptt_state_last):
-                
+
                 if (self.ptt_state == 1):  # do not TX if the band is still unknown (such as at startup)
                     #print("VFO A Band = ", self.vfoa_band, " ptt_state is TX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
                     if (self.split_status == 1): # swap selected and unselected when split is on during TX
                         self.__vfoa_band_split_Tx = self.vfoa_band  # back up the original VFOa band
                         self.__selected_vfo_split_Tx = self.selected_vfo  # back up original VFOa
                         self.selected_vfo = self.unselected_vfo  # during TX assign b to a
-                        self.vfoa_band = self.vfob_band                        
-                        
+                        self.vfoa_band = self.vfob_band
+
                         # skip the band switch and delay if on the same band
-                        if (self.vfoa_band != self.__vfoa_band_split_Tx):                            
+                        if (self.vfoa_band != self.__vfoa_band_split_Tx):
 
                             self.p_status("SPLtx")
                             self.band_io_output(self.vfoa_band)
@@ -513,21 +523,21 @@ class BandDecoder(OutputHandler):
                             print("Delay:",self.PTT_hang_time,"sec")
                         else:
                             self.p_status(" DUP ")
-                        
+
                         self.ptt_io_output(self.vfoa_band, self.ptt_state)
                     else:
                         self.p_status(" PTT ")
                         self.ptt_io_output(self.vfoa_band, self.ptt_state)
-                
+
                 if (self.ptt_state == 0):
                     #print("VFO A Band = ", self.vfoa_band, " ptt_state is RX ", self.ptt_state, " Msg ID ", hex(self.payload_copy[0x0001]))
                     if (self.split_status == 1): # swap selected and unselected when split is on during TX
                         self.vfoa_band = self.__vfoa_band_split_Tx
                         self.selected_vfo = self.__selected_vfo_split_Tx
-                        
+
                         # skip the band switch and delay if on the same band
-                        if (self.vfoa_band != self.vfob_band):                                                        
-                            self.p_status("SplRx")                        
+                        if (self.vfoa_band != self.vfob_band):
+                            self.p_status("SplRx")
                             self.ptt_io_output(self.vfoa_band, self.ptt_state)
                             time.sleep(self.PTT_hang_time)
                             print("Delay:",self.PTT_hang_time,"sec")
@@ -539,7 +549,7 @@ class BandDecoder(OutputHandler):
                     else:
                         #self.p_status(" PTT ")
                         self.ptt_io_output(self.vfoa_band, self.ptt_state)
-                
+
                 self.__ptt_state_last = self.ptt_state
 
 
@@ -547,7 +557,7 @@ class BandDecoder(OutputHandler):
         print("(Tx_on) Transmitting... - sometimes not")
         hexdump(self.payload_copy)
         print("(dump) Length:", self.payload_len)
-        
+
 
     def dump(self):
         hexdump(self.payload_copy)
@@ -563,7 +573,7 @@ class BandDecoder(OutputHandler):
         __payload_len = len(self.payload_copy)
         print("(case_default) Unknown message,ID:0x"+format(self.payload_ID,'04x')+"  Length:", __payload_len)
         return "no match found"
-        
+
     def colored(self, r, g, b, text):
         return f"\033[38;2;{r};{g};{b}m{text}\033[0m"
 
@@ -572,21 +582,21 @@ class BandDecoder(OutputHandler):
 #
 
 #  __________________________________________________________________
-#    
+#
 #   Routing to functions based on Message ID
 #  __________________________________________________________________
 #
 
 class Message_handler(BandDecoder):
-    # We are inheriting from BandDecoder class so we can access its functions 
+    # We are inheriting from BandDecoder class so we can access its functions
     #   and variables as if they were our own.
-        
-    # This is a list of observed message IDs.  
+
+    # This is a list of observed message IDs.
     # Turn on print in the switch_case() method to see all IDs routed through to this list
     # unhandled does nothing, squelches the known messages so we can see unknown messages easier
     # Replace any of these with dump() to do a hexdump and help identify what it does.
     # Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.
-    
+
     def switch(self, ID):
         match ID:
             #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
@@ -610,11 +620,10 @@ class Message_handler(BandDecoder):
             case 0x1401: self.unhandled(),  # 0x14 01 - 284 byte spectrum maybe
             case 0x1403: self.unhandled(),  # 0x14 03 - 796 byte unknown data, not freq, lots of them
             case 0x1800: self.unhandled(),  # 0x18 00 - 32 bytes continuous  unknown data
-            
             # this usually has good data but on 23cm FM at least once it was all zeros
             case 0x1801: self.case_x18(),self.frequency(),   # 0x18-01 - 288 bytes for band chg, preamp, atten, likely more
             #  1801 on 5G afer PTT got a string of these but the data was half 0s and half NEA type data, not the usual radio settings data -  Is this G onlybehavior?
-            case 0x1802: self.dump(),  # 0x18 02 - 544 bytes on 2M SSB
+            case 0x1802: self.dump(),       # 0x18 02 - 544 bytes on 2M SSB
             case 0x1803: self.unhandled(),  # 0x18 03 - 800 bytes lots of 0s adn some GPS near end.  Surrounded by 30, 40, a d0, then 54 an 64 IDs. Was in DV/FM
             case 0x1c00: self.unhandled(),  # 0x1c 00 - 0x23 bytes NMEA has oocasional $GPGGA, slows or stops when squelch is open on good signal
             case 0x1c01: self.unhandled(),  # 0x1c 01 - 292 bytes was on 23cm FM
@@ -629,10 +638,8 @@ class Message_handler(BandDecoder):
             case 0x2802: self.dump(),       # 0x28 02 - 560 bytes  on 2M SSB
             case 0x2803: self.unhandled(),  # 0x28 03 - 816 bytes  was n 5G FM doing PTT 
             case 0x2c00: self.unhandled()   # 0x2c 00 - 52 bytes follows PTT.  unknown data  NMEA during RX. 
-            
             # this usually has good data but on 2M and 23cm FM at least once it was all zeros
             case 0x2c01: self.mode(),self.frequency(), # 0x2c 01 - 308 bytes get on mode change, has frequency data in it both vfos
-            
             case 0x2c03: self.unhandled()   # 0x2c 03 - ?? bytes was in 2M FM got invalid Mode Filt, DataM values
             case 0x3001: self.unhandled(),  # 0x30 01 - 312 bytes NMEA data
             case 0x3002: self.unhandled(),  # 0x30 02 - 568 bytes was on 2M CW
@@ -739,7 +746,7 @@ class Message_handler(BandDecoder):
             case 0xc402: self.unhandled(),  # 0xc4 02 - 716 bytes  was in DV/FM mostl;y 0s, some nmea
             case 0xc800: self.unhandled(),  # 0xc8 00 - 208 bytes  RTTY on 23cm spectrum maybe
             case 0xc801: self.unhandled(),  # 0xc8 01 - 464 bytes  was in DV/FM mosty all zeros, maybe spectrum
-            case 0xcc00: self.unhandled(),       # 0xcc 00 - 212 bytes  was on 23cm FM all 0s mostly
+            case 0xcc00: self.unhandled(),  # 0xcc 00 - 212 bytes  was on 23cm FM all 0s mostly
             case 0xcc01: self.unhandled(),  # 0xcc 01 - 468 bytes  was on 23cm FM all 0s mostly
             case 0xcc02: self.unhandled(),  # 0xcc 02 - 724 bytes  2M FM  spectrum
             case 0xd000: self.unhandled(),  # 0xd0 00 - 216 bytes ???PTT start event???, freq at 0xb8 for current VFO.  Works on simplex, duplex, no split, no VFOb data
@@ -771,41 +778,40 @@ class Message_handler(BandDecoder):
             case 0xf800: self.unhandled(),  # 0xf8 00 - 255 bytes shows up periodically in middle of TX streams and other times
             case 0xf801: self.unhandled(),  # 0xf8 01 - 512 bytes was on 2M CW
             case 0xfc00: self.unhandled(),  # 0xfc 00 - 260 bytes Looks like spectrum/NMEA data.  Saw in many palces, during TX, in FM to SSB transition, DV/FM            
-            
-            case _: self.case_default()   # anything we have not seen yet comes to here
+            case _: self.case_default()     # anything we have not seen yet comes to here
 
 
     def switch_case(self, payload, payload_len):
         self.payload_copy = payload
         self.payload_ID_byte = payload[0x0001]
         self.payload_Attrib_byte = payload[0x0002]
-        self.payload_len = payload_len 
+        self.payload_len = payload_len
         self.payload_ID = (self.payload_ID_byte << 8)+self.payload_Attrib_byte
-        
+
         # Turn off all lines below this to see only hex data on screen
         #if (self.payload_ID == 0xa4):   # a0 a4 a8 ac
          #   hexdump(payload)
          #   print(self.payload_len, "\n")
-        
+
         # Turn this print ON to see all message IDs passing through here
         #print("Switch on 0x"+format(self.payload_ID,"04x")+"  Len:", format(self.payload_len))
-        
+
         #Turn this on to only see hex dumps for any and all packets
         #self.dump()
-        
+
         # most large payloads are spectrum data and we can ignore those.
-        if (self.payload_len < 360 and self.payload_ID != 0xa803): 
+        if (self.payload_len < 360 or self.payload_ID == 0xa803):
             self.switch(self.payload_ID)
-        
+
 #  __________________________________________________________________
-#    
+#
 #   Packet Capture and Filtering
 #  __________________________________________________________________
 #
 
 def parse_packet(packet):
     conf.verb = 0
-    
+
     """sniff callback function.
     """
     if packet and packet.haslayer('TCP'):
@@ -820,12 +826,12 @@ def parse_packet(packet):
             mh.switch_case(payload, payload_len )  # this extracts and routes messages to functions
 
 
-def tcp_sniffer(args): 
+def tcp_sniffer(args):
     try:
         # can read from piped data input
         #payload = sys.stdin.readline()
         #print(payload)
-        
+
         # filter and capture packets of interest using scapy functions
         a = sniff(
             #filter="tcp and port 50004 and (length == 290 or length == 304 or length == 306 or length == 308)",
@@ -835,9 +841,10 @@ def tcp_sniffer(args):
             iface=r'eth0',
             prn=parse_packet  # call this function to process filtered packets
         )
-                
+
     except KeyboardInterrupt:
         print('Done', i)
+        GPIO.cleanup()
 
 
 if __name__ == '__main__':
