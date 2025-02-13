@@ -60,6 +60,8 @@ Without the venv as on the Pi 3B instructions, it is just:
 
     sudo python TCP905v2.py
 
+As of 13 Feb 2025 there is an install script which sets up the pgram as a background service and you view the log file to see the screen output with 'tail-f /tmp/Decoder905.log', or use the view_log script to do the same thing.
+
 Details are provided here https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO about how to configure the GPIO output with examples for a PiHat Relay board and using a direct connection to my 905 USB Band decoder project Remote BCD decoder board which provides 6 buffered BAND outputs and 6 buffered PTT outputs for 6 bands.
 
 This version program is similar to the earlier TCP905.py below except instead of filtering and processing packets based on packet lengths, I am using the 2nd and 3rd payload bytes as the message ID.  The 1st byte seems to always be 0x01.  2nd byte looks to be the message ID.  3rd byte is normally between 0 and 3 with a few exceptions.   
