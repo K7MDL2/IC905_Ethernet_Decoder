@@ -187,7 +187,7 @@ class OutputHandler:
 
                 b = bd.colored(255,235,145, format(str(band),"5"))
                 bp = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(p+" Output for "+b+" Pattern:"+bp)
+                print(p+" Output for "+b+" Pattern:"+bp, flush=True)
 
                 if (ptt):
                     ptt = 0xff
@@ -220,7 +220,7 @@ class OutputHandler:
                 t = bd.colored(235,110,200, "(BAND )")
                 b = bd.colored(255,225,145, format(str(band),"5"))
                 p = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(t+" Output for "+b+" Pattern:"+p)
+                print(t+" Output for "+b+" Pattern:"+p, flush=True)
                 template = 0x0000
 
                 for __pins in IO_table:
@@ -258,8 +258,8 @@ class BandDecoder(OutputHandler):
         self.__offset = 0
         self.__vfoa_band_split_Tx = 0
         self.split_status = 0
-        self.preamp_status = 0
-        self.atten_status = 0
+        self.preamp_status = 9
+        self.atten_status = 9
         self.ptt_state = 0
         self.payload_len = 0
         self.payload_copy = ""
@@ -301,7 +301,7 @@ class BandDecoder(OutputHandler):
             " A:"+format(self.atten_status, "1"),
             " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
             #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus,and.or when there is spectrum flowing not sure which
-            " Src:0x"+format(self.payload_ID, "04x"))
+            " Src:0x"+format(self.payload_ID, "04x"), flush=True)
 
 
     # If we see corrupt values then look at the source.
