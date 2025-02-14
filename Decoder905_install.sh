@@ -8,7 +8,7 @@ sudo apt update
 sudo apt upgrade
 python --version
 sudo apt install pip
-sudo apt install python3-scapy
+#sudo apt install python3-scapy
 sudo apt install python3-numpy
 sudo apt install python3-RPi.GPIO
 
@@ -30,8 +30,8 @@ sudo systemctl daemon-reload
 sudo systemctl reset-failed
 
 echo "Copying files and configuring the new systemd service ..."
-sudo cp $DIR/TCP905v2.py /usr/local/bin
-sudo chmod 744 /usr/local/bin/TCP905v2.py
+sudo cp $DIR/TCP905v3.py /usr/local/bin
+sudo chmod 744 /usr/local/bin/TCP905v3.py
 cp $DIR/view_log /home/$USER
 chmod +x /home/$USER/view_log
 
