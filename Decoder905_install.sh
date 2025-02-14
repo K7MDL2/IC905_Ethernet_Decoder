@@ -9,6 +9,7 @@ sudo apt upgrade
 python --version
 sudo apt install pip
 #sudo apt install python3-scapy
+sudo apt install tcpdump
 sudo apt install python3-numpy
 sudo apt install python3-RPi.GPIO
 
