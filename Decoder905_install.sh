@@ -30,8 +30,8 @@ sudo systemctl daemon-reload
 sudo systemctl reset-failed
 
 echo "Copying files and configuring the new systemd service ..."
-sudo cp $DIR/TCP905v3.py /usr/local/bin
-sudo chmod 744 /usr/local/bin/TCP905v3.py
+sudo cp $DIR/TCP905.py /usr/local/bin
+sudo chmod 744 /usr/local/bin/TCP905.py
 cp $DIR/view_log /home/$USER
 chmod +x /home/$USER/view_log
 

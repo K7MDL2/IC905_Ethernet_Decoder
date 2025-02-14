@@ -29,22 +29,28 @@ The long term setup for me will use 2 managed switches, my main shack 16-port TL
 
 ### Band Decoder programs
 
-As of Feb 5, 2025 there are now 3 means to extract the PTT and frequency events.  
+As of Feb 5, 2025 there are now several program methods to extract the PTT and frequency events.  
 
-The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cpa905 output is piped to Proc905.py.  It is now in the Archive Folder
+The first was a combination of a tcpdump utility command line script piped to a small Python program where additional filtering and information was printed out.  This was basically a prototype for a dedicated Python program.  Cap905 output is piped to Proc905.py.  It is now in the Archive Folder
 
 A standalone Python program TCP905.py was next.  It uses scapy module to prefilter data based on packet lengths of interest as before.  The TCP packet payload is extracted and parsed for PTT and frequency data.  It was run on Python 3.9.  It is now in the Archive folder.
 
-The standalone Python TCP905v2.py program is the current version and uses message ID based processing instead of packet lengths and is easier to add and extend.  It requires Python 3.10 or higher.  I tested on v3.12.3 in Python's virtual dev environment on my PC and on Python 3.11 (not in a virtual env) that came with the Pi OS Lite on a Pi3B.   
+The standalone Python TCP905v2.py program uses message ID based processing instead of packet lengths and is easier to add and extend.  It requires Python 3.10 or higher.  I tested on v3.12.3 in Python's virtual dev environment on my PC and on Python 3.11 (not in a virtual env) that came with the Pi OS Lite on a Pi3B.   
 
-### TCP905v2.py Usage  (Current Dev)
+### TCP905v3.py Usage  (Current Dev)
+
+TCP905v2.py has been replaced with v3 and moved to the Archive folder.  It used scapy.py module but scapy has a memory leak I was not able to work around.  Nearly every message received ticked up memory and after 4-6 hours the CPU memory was at 100% causing the OS to bog down, remote access to fail, and eventually the program crashes to be restarted (as desired).  It started up with 10% CPU and 9% memory.
+
+in V3 I run tcpdump as a Python subprocess, piping it's unbuffered output into the program where I then parse out the packet and payload lengths and the payload data.  It uses about 3.5% memory and aro0nd 10% CPU when processing a lot fo events such as prapidly soinnign the VFO.  Since tcpdump is configured to only pass along packets > 229 bytes, and the program tosses packets > 360 bytes so between messages the program sits nearly idle and consuming almost no CPU.
+
+Install scripts are updated and I am using the generic progam name TCP905.py. I have started to change doc references to leave out the version part of the name.
 
 I have created a Wiki page Building the Project for how to build and configure the program to run on a remote RPi board.
 https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Building-the-Project
 
 This uses a Pi 3B or Pi 4B to run the Band Decoder program and uses GPIO pins to control relays and such.  The CPU board wired LAN port must be connected so that it can monitor the TCP-IP traffic between the IC-905 control head and it's RF Unit.  I use a managed ethernet switch with VLAN and port mirrorng. The Pi plugs into the mirror port.
 
-Here is how to set up a Pi 3B or Pi 4B OS image to run the software.  Once have a remote connection and copy down the repository, you can run an install script that will update the OS, install the dependent Python modules, then installs the program files as a systemd service.  Sytemd will restart the program if it fails within 2 seconds.  The screen output is redirected to a log file.  The script view_log will tail the log file displaying any new events real-time with all it's color glory.  You can look in /tmp/Decoder905.log for past events.  This permits easy remote monitoring over an SSH connection.   https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Setup-on-a-Pi3B
+Here is how to set up a Pi 3B or Pi 4B OS image to run the software.  Once have a remote connection and copy down the repository, you can run an install script that will update the OS, install the dependent Python modules, then installs the program files as a systemd service.  Systemd will restart the program if it fails within 2 seconds.  The screen output is redirected to a log file.  The script view_log will tail the log file displaying any new events real-time with all it's color glory.  You can look in /tmp/Decoder905.log for past events.  This permits easy remote monitoring over an SSH connection.   https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Setup-on-a-Pi3B
 
 This Wiki page (and others) https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Configuring-the-IO  shows how to configure the code and hardware for GPIO output to control things like antenna switches and amplifier keying.   This includes a BCD output config example.
 
@@ -52,13 +58,13 @@ The programs here are tested on a Windows PC and Pi 4B with Python 3.12.3 in the
 
 ![{EE40D230-11FF-4F5E-8067-A364F71EF05C}](https://github.com/user-attachments/assets/31102ccb-c4db-4b01-8da7-b14b4ef1c24f)
 
-Run the program as sudo or you get access denied from the the network layer I think.  Assuming you are in the folder where you copied the TP905v2.py program, in the Python virtual env the command line looks like this:
+Run the program as sudo or you get access denied from the the network layer I think.  Assuming you are in the folder where you copied the TP905 program, in the Python virtual env the command line looks like this:
         
-    sudo /home/pi/venv/bin/python ./TCP905v2.py
+    sudo /home/pi/venv/bin/python ./TCP905.py
 
 Without the venv as on the Pi 3B instructions, it is just:
 
-    sudo python TCP905v2.py
+    sudo python TCP905.py
 
 As of 13 Feb 2025 there is an install script which sets up the pgram as a background service and you view the log file to see the screen output with 'tail-f /tmp/Decoder905.log', or use the view_log script to do the same thing.
 

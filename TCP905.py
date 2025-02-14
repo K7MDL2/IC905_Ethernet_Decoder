@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  TCP905v2.py
+#  TCP905.py
 #
-#  Feb 2025 K7MDL
+#  v3  Feb 14, 2025 K7MDL
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -847,7 +847,9 @@ def tcp_sniffer(args):
       payload = 0
       payload_len = 0
       header_len = 0
-
+      
+      print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025")
+      
       while (1):
 
         #tcpdump_running = sub.run(['pgrep','tcpdump'], stdout=sub.PIPE).stdout.decode('utf-8').strip()  # check if tcpdump already running
