@@ -45,7 +45,9 @@ in V3 I run tcpdump as a Python subprocess, piping it's unbuffered output into t
 
 A feature just added is CPU and external temperature and humidity from a DHT11 sensor.  Given these are likely to be used outside in, at times, extreme temps, it would be good to record the temps.  These sensors are very common and inexpensive.  The data is logged with each radio event, printed at the end of the event line which is stored in the log file in /tmp/Decdoere905.log.  The install script sets up the GPIO pin and dtoverlay so the OS can read the device.  No 3rd party modules required with the latest OS version (bookworm).  A oneline script 'chk_dht11' will check the OS is reading the device properly.  The device specs say the DHT11 only reads down to 32F (0C) so a better sensor may be in the future.  It was what I had here.
 
-![alt text]({A587BCD9-3A8E-423E-B672-D7B5DEA7185E}.png)
+Here is the latast screen shot with temps now seen. At the top is the version startup banner and you can see th GPIO pin assignments.
+
+![{A587BCD9-3A8E-423E-B672-D7B5DEA7185E}](https://github.com/user-attachments/assets/b40f324e-a820-4713-a5bc-94138d57d4b9)
 
 Install scripts are updated and I am using the generic progam name TCP905.py. I have started to change doc references to leave out the version part of the name.
 
