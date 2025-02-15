@@ -4,6 +4,20 @@
 #  TCP905.py
 #
 #  v3  Feb 14, 2025 K7MDL
+#  IC-905 Ethernet Band Decoder
+#
+#  Uses tcpdump in a subprocess to filter and process sniffed packets
+#  between the IC-905 Control Head and the RF Unit to extract frequency
+#  and PTT events to operate a band decoder which in turn can operate
+#  things like antenna switches and/or key an amplifer.
+#  12 GPIO pins are configured in the code below.
+#  See the project wiki pages for details
+#
+#  Connect a managed switch with the control head and RF unit in a VLAN
+#  Enable port mirroring to a 3rd switch port.
+#  Plug in a Raspberry Pi 3B or 4B to the mirror port.
+#
+# ------------------------------------------------------------------------
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -21,14 +35,13 @@
 #  MA 02110-1301, USA.
 #
 #
-#from scapy.all import *
 import sys
 import numpy as np
 import time
 import RPi.GPIO as GPIO
 #import tracemalloc
-#from memory_profiler import profile
 import subprocess as sub
+import psutil
 
 #  Freq_table:
 #  These band edge frequency values are based on the radio message VFO
@@ -155,7 +168,6 @@ IO_table = {
                 }
             }
 
-#
 #  __________________________________________________________________
 #
 #  GPIO outputs for Band and PTT
@@ -277,6 +289,44 @@ class BandDecoder(OutputHandler):
         self.PTT_hang_time = 0.3
 
 
+# -------------------------------------------------------------------
+#
+# DHT-11 Humidity and Temperature sensor
+#
+#   The DHT-11 and CPU temperature is logged with each print to
+#       screen at the end of the print line.
+#
+#--------------------------------------------------------------------
+
+    def get_cpu_temp(self):
+        temp = psutil.sensors_temperatures()['cpu_thermal'][0].current
+        return temp
+
+    def read_dht(self, file):
+        f = open(file,"rt")
+        value = int(f.readline())
+        f.close
+        return value
+
+    def read_temps(self):
+        t = h = 0
+        try:
+            t = self.read_dht("/sys/bus/iio/devices/iio:device0/in_temp_input")/1000
+            h = self.read_dht("/sys/bus/iio/devices/iio:device0/in_humidityrelative_input")/1000
+            c = self.get_cpu_temp()
+
+        except Exception as e:
+            print(e)
+            t = h = c = "N/A"
+
+        return t, h, c
+
+    def temps(self):
+        (temp, hum, cpu) = self.read_temps()
+        #if temp != "N/A" and hum != "N/A" and cpu != "N/A":
+        print("Temperature %(t)0.2f°C, Humidity: %(h)0.2f%%  CPU Temp: %(c)0.2f%%" % {"t": temp, "h": hum, "c": cpu})
+
+
     def check_msg_valid(self):
         if (self.payload_ID != 0xa803):
             if (self.payload_copy[0x000a] != 0x44 and
@@ -289,6 +339,7 @@ class BandDecoder(OutputHandler):
 
 
     def p_status(self, TAG):
+        (temp, hum, cpu) = self.read_temps()
         print(bd.colored(155,180,200,"("+TAG+")"),
             " VFOA Band:"+bd.colored(255,225,165,format(self.vfoa_band,"4")),
             " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")),
@@ -301,7 +352,9 @@ class BandDecoder(OutputHandler):
             " A:"+format(self.atten_status, "1"),
             " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
             #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus,and.or when there is spectrum flowing not sure which
-            " Src:0x"+format(self.payload_ID, "04x"), flush=True)
+            " Src:0x"+format(self.payload_ID, "04x"),
+            " T:%(t)0.2f°C  H:%(h)0.2f%%  CPU:%(c)0.2f°C" % {"t": temp, "h": hum, "c": cpu},
+            flush=True)
 
 
     # If we see corrupt values then look at the source.
@@ -309,7 +362,7 @@ class BandDecoder(OutputHandler):
     #   status or have other spectrum like data in the same length
     #   and ID+Attrib combo/   Calling check_msg_valid to filter out
     #   bad stuff based on observed first row byte patterns
-    #@profile
+
     def case_x18(self):  # process items in message id # 0x18
         #hexdump(self.payload_copy)
         #print("(ID:18) Length",self.payload_len)
@@ -338,7 +391,7 @@ class BandDecoder(OutputHandler):
     # process items in message #0xd4 0x00
     # attr = 01 is long and mostly zeros
     # d400 can be filled with other type data on some occasions, maybe band specific, not sure.
-    #@profile
+
     def case_xD4(self):
         #hexdump(self.payload_copy)
         #print("(ID:D4) Length",self.payload_len)
@@ -378,7 +431,7 @@ class BandDecoder(OutputHandler):
         # Now we have a decimal frequency
         return freq
 
-    #@profile
+
     def frequency(self):  # 0xd8 0x00 is normal tuning update, 0x18 on band changes
         #print("(Freq) Freq from ID:",format(self.payload_ID,"02x"))
         #hexdump(self.payload_copy)
@@ -476,7 +529,7 @@ class BandDecoder(OutputHandler):
     #   0 is LSB
     #   2 is cw
     #   6 is AM
-    #@profile
+
     def mode(self): # not likely the real mode change as only some issue this message
         #  must be some other primary event
         #hexdump(self.payload_copy)
@@ -600,7 +653,6 @@ class Message_handler(BandDecoder):
     # Replace any of these with dump() to do a hexdump and help identify what it does.
     # Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.
 
-    #@profile(precision=4)
     def switch(self, ID):
         #print("ID:",format(ID,"04x")
         match ID:
@@ -786,7 +838,6 @@ class Message_handler(BandDecoder):
             case _: self.case_default()     # anything we have not seen yet comes to here
 
 
-    #@profile(precision=4)
     def switch_case(self, payload, payload_len):
         self.payload_copy = payload
         self.payload_ID_byte = payload[0x0001]
@@ -821,7 +872,6 @@ class Message_handler(BandDecoder):
 #   Packet Capture and Filtering
 #  __________________________________________________________________
 #
-#@profile(precision=4)
 def parse_packet(payload):
     #print(payload)
     #hexdump(payload)
@@ -834,7 +884,7 @@ def parse_packet(payload):
     #for stat in top_stats[:10]:
     #    print(stat)
 
-#@profile(precision=4)
+
 def tcp_sniffer(args):
     try:
         # read from piped data input
@@ -900,6 +950,7 @@ def tcp_sniffer(args):
                      parse_packet(payload)  #  process our new message
                      payload = 0
                      payload_str = ""
+                     
 
 
     except KeyboardInterrupt:
