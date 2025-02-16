@@ -35,13 +35,18 @@
 #  MA 02110-1301, USA.
 #
 #
+#from scapy.all import *
+import os
 import sys
 import numpy as np
 import time
 import RPi.GPIO as GPIO
 #import tracemalloc
+#from memory_profiler import profile
 import subprocess as sub
-import psutil
+import binascii
+
+dht11_OK = True   #  set to True if you have the DHT11 temp sensor wired up, else set to False
 
 #  Freq_table:
 #  These band edge frequency values are based on the radio message VFO
@@ -168,6 +173,7 @@ IO_table = {
                 }
             }
 
+
 #  __________________________________________________________________
 #
 #  GPIO outputs for Band and PTT
@@ -253,6 +259,7 @@ class OutputHandler:
                     #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
                     GPIO.output(io_pin, pin_state)
 
+
 #  __________________________________________________________________
 #
 #  Packet data processing functions
@@ -288,6 +295,18 @@ class BandDecoder(OutputHandler):
         self.in_menu = 0
         self.PTT_hang_time = 0.3
 
+    def hexdump(self, data: bytes):
+        def to_printable_ascii(byte):
+            return chr(byte) if 32 <= byte <= 126 else "."
+
+        offset = 0
+        while offset < len(data):
+            chunk = data[offset : offset + 16]
+            hex_values = " ".join(f"{byte:02x}" for byte in chunk)
+            ascii_values = "".join(to_printable_ascii(byte) for byte in chunk)
+            print(f"{offset:08x}  {hex_values:<48}  |{ascii_values}|")
+            offset += 16
+
 
 # -------------------------------------------------------------------
 #
@@ -299,8 +318,8 @@ class BandDecoder(OutputHandler):
 #--------------------------------------------------------------------
 
     def get_cpu_temp(self):
-        temp = psutil.sensors_temperatures()['cpu_thermal'][0].current
-        return temp
+        temp = os.popen("vcgencmd measure_temp").readline()
+        return temp.replace("temp=", "").strip()[:-2]
 
     def read_dht(self, file):
         f = open(file,"rt")
@@ -309,22 +328,38 @@ class BandDecoder(OutputHandler):
         return value
 
     def read_temps(self):
-        t = h = 0
+        global dht11_OK
+        t = h = tF = 0    #  a value of zero inidicates failure so starting with 1
+
+        if (dht11_OK == False):   # failures result in bus timeout delays so do not try again
+            return t, h, tF
+
         try:
-            t = self.read_dht("/sys/bus/iio/devices/iio:device0/in_temp_input")/1000
-            h = self.read_dht("/sys/bus/iio/devices/iio:device0/in_humidityrelative_input")/1000
-            c = self.get_cpu_temp()
+            if  (dht11_OK):
+                t = self.read_dht("/sys/bus/iio/devices/iio:device0/in_temp_input")/1000
+                h = self.read_dht("/sys/bus/iio/devices/iio:device0/in_humidityrelative_input")/1000
+                tF = t * (9 / 5) + 32
 
-        except Exception as e:
-            print(e)
-            t = h = c = "N/A"
+        # if failure due to device not present bus timeout delays happen so shut off further attempts
+        except RuntimeError as error:
+            # Errors happen fairly often, DHT's are hard to read, just keep going
+            print("DHT11 RunTime Eror =", error.args[0], flush=True)
+            t = h = tF = 0
+            dht11_OK = False
 
-        return t, h, c
+        except Exception as error:
+            print("DHT11 Read error = ",error, flush=True)
+            t = h = tF = 0
+            dht11_OK = False
+            #raise error
+
+        return t, h, tF
+
 
     def temps(self):
-        (temp, hum, cpu) = self.read_temps()
+        (temp, hum, temp_F) = self.read_temps()
         #if temp != "N/A" and hum != "N/A" and cpu != "N/A":
-        print("Temperature %(t)0.2f°C, Humidity: %(h)0.2f%%  CPU Temp: %(c)0.2f%%" % {"t": temp, "h": hum, "c": cpu})
+        print("Temperature %(t)0.2f°C, Humidity: %(h)0.2f%%  %(f)0.2f%%" % {"t": temp, "h": hum, "f": temp_F})
 
 
     def check_msg_valid(self):
@@ -339,7 +374,8 @@ class BandDecoder(OutputHandler):
 
 
     def p_status(self, TAG):
-        (temp, hum, cpu) = self.read_temps()
+        (temp, hum, temp_F) = self.read_temps()
+        cpu = self.get_cpu_temp()
         print(bd.colored(155,180,200,"("+TAG+")"),
             " VFOA Band:"+bd.colored(255,225,165,format(self.vfoa_band,"4")),
             " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")),
@@ -353,7 +389,7 @@ class BandDecoder(OutputHandler):
             " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
             #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus,and.or when there is spectrum flowing not sure which
             " Src:0x"+format(self.payload_ID, "04x"),
-            " T:%(t)0.2f°C  H:%(h)0.2f%%  CPU:%(c)0.2f°C" % {"t": temp, "h": hum, "c": cpu},
+            " T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": temp_F, "h": hum, "c": cpu}, # sub in 'temp' for deg C
             flush=True)
 
 
@@ -364,7 +400,7 @@ class BandDecoder(OutputHandler):
     #   bad stuff based on observed first row byte patterns
 
     def case_x18(self):  # process items in message id # 0x18
-        #hexdump(self.payload_copy)
+        #self.hexdump(self.payload_copy)
         #print("(ID:18) Length",self.payload_len)
 
         if self.check_msg_valid():
@@ -393,7 +429,7 @@ class BandDecoder(OutputHandler):
     # d400 can be filled with other type data on some occasions, maybe band specific, not sure.
 
     def case_xD4(self):
-        #hexdump(self.payload_copy)
+        #self.hexdump(self.payload_copy)
         #print("(ID:D4) Length",self.payload_len)
 
         if self.check_msg_valid():
@@ -434,7 +470,7 @@ class BandDecoder(OutputHandler):
 
     def frequency(self):  # 0xd8 0x00 is normal tuning update, 0x18 on band changes
         #print("(Freq) Freq from ID:",format(self.payload_ID,"02x"))
-        #hexdump(self.payload_copy)
+        #self.hexdump(self.payload_copy)
         #print("Length",self.payload_len)
 
         if self.check_msg_valid():
@@ -549,7 +585,7 @@ class BandDecoder(OutputHandler):
     # 0xe8-00 - see Github Wiki pages for examples of mesaage ID flow
     # 0xe8-01 is spectrum data
     def ptt(self):
-        #hexdump(self.payload_copy)
+        #self.hexdump(self.payload_copy)
         #print("Length",self.payload_len)
 
         if self.check_msg_valid():
@@ -610,14 +646,23 @@ class BandDecoder(OutputHandler):
 
     def TX_on(self):
         print("(Tx_on) Transmitting... - sometimes not")
-        hexdump(self.payload_copy)
-        print("(dump) Length:", self.payload_len)
+        self.hexdump(self.payload_copy)
+        print("(TX_on) Length:", self.payload_len)
+
+
+    def temperature_log(self):
+        self.p_status("Temps")
 
 
     def dump(self):
-        hexdump(self.payload_copy)
+        self.hexdump(self.payload_copy)
         print("(dump) Length:", self.payload_len)
 
+
+    def heartbeat(self):
+        self.hexdump(self.payload_copy)
+        #print("heartbeat", self.payload_copy)
+        print("(heartbeat) Length:", self.payload_len)
 
     def unhandled(self):
         return "unhandled message"
@@ -653,6 +698,7 @@ class Message_handler(BandDecoder):
     # Replace any of these with dump() to do a hexdump and help identify what it does.
     # Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.
 
+    #@profile(precision=4)
     def switch(self, ID):
         #print("ID:",format(ID,"04x")
         match ID:
@@ -672,6 +718,7 @@ class Message_handler(BandDecoder):
             #case 0x0b: self.dump(),        # 0x0b xx - ??
             case 0x0c00: self.dump(),#self.mode(),  # 0x0c 00 - ?? byte unknown data, not freq, lots of them saw at satartup while in DV/FM mode
             case 0x0c01: self.unhandled(),  # 0x0c 01 - 276 byte on 23cm FM all 0s
+            case 0x0c02: self.unhandled(),  # 0x0c 02 - ??? byte on 2M FM
             case 0x1001: self.unhandled(),  # 0x10 01 - 280 byte was on 2M CW
             case 0x1003: self.unhandled(),  # 0x10 03 - 792 byte spectrum maybe
             case 0x1401: self.unhandled(),  # 0x14 01 - 284 byte spectrum maybe
@@ -763,16 +810,17 @@ class Message_handler(BandDecoder):
             case 0x8c01: self.unhandled(),  # 0x8c 01 - 404 bytes was on 23cm FM all 0s
             case 0x8c02: self.dump(),       # 0x8c 02 - 660 bytes spectrum maybe
             case 0x9001: self.unhandled(),  # 0x90 01 - 408 bytes spectrum on 2.4G
+            case 0x9400: self.temperature_log() #0x?? - ?? bytes shows up periodically, maybe use for timer to log temps
             case 0x9401: self.unhandled(),  # 0x94 01 - 412 bytes Looks like spectrum on 2.4G SSB
             case 0x9402: self.unhandled(),  # 0x94 02 - 668 bytes Looks like spectrum
             case 0x9801: self.unhandled(),  # 0x98 01 - 416 bytes on 23cm FM mostly 0s
             case 0x9802: self.unhandled(),  # 0x98 02 - 672 bytes spectrum while in 2M FM quiet band
-            case 0x9c00: self.unhandled(),  # 0x9c 00 - 164 bytes saw in DV/FM. nearly all zeros,  rare message.  
-            case 0x9c01: self.unhandled(),  # 0x9c 01 - 420 bytes was on 23cm FM 
+            case 0x9c00: self.unhandled(),  # 0x9c 00 - 164 bytes saw in DV/FM. nearly all zeros,  rare message.
+            case 0x9c01: self.unhandled(),  # 0x9c 01 - 420 bytes was on 23cm FM
             case 0xa000: self.unhandled(),  # 0xa0 00 - 168 bytes was on 23cm FM
-            case 0xa002: self.unhandled(),  # 0xa0 02 - 680 bytes Spectrum likely in AM 
+            case 0xa002: self.unhandled(),  # 0xa0 02 - 680 bytes Spectrum likely in AM
             case 0xa400: self.unhandled(),  # 0xa4 00 - 172 bytes shows in DV/FM mode. Looks like GPS data.  Codl just be gps mixed in
-            case 0xa401: self.unhandled(),  # 0xa4 01 - 428 bytes shows in DV/FM mode. All 0s 
+            case 0xa401: self.unhandled(),  # 0xa4 01 - 428 bytes shows in DV/FM mode. All 0s
             case 0xa406: self.unhandled(),  # 0xa4 06 - 1448 bytes go in 2M at radio startup - first message maybe has startup stuff we need
             case 0xa800: self.unhandled(),  # 0xa8 00 - 176 bytes 2.4G all zeros no signal
             case 0xa801: self.unhandled(),  # 0xa8 01 - 488 and 432 bytes shows in DV/FM when ref level raised and APRS signal and on 2.4G
@@ -847,7 +895,7 @@ class Message_handler(BandDecoder):
 
         # Turn off all lines below this to see only hex data on screen
         #if (self.payload_ID == 0xa4):   # a0 a4 a8 ac
-         #   hexdump(payload)
+         #   bd.hexdump(payload)
          #   print(self.payload_len, "\n")
 
         # Turn this print ON to see all message IDs passing through here
@@ -857,8 +905,8 @@ class Message_handler(BandDecoder):
         #self.dump()
 
         # most large payloads are spectrum data and we can ignore those.
-        if (self.payload_len < 360 or self.payload_ID == 0xa803 and self.payload_ID != 0xe801):
-            self.switch(self.payload_ID)
+        if (self.payload_len < 500 or self.payload_ID == 0xa803): # and self.payload_ID != 0xe801):
+           self.switch(self.payload_ID)
 
         # reset the storage to prevent memory leaks
         self.payload_copy = None
@@ -874,11 +922,13 @@ class Message_handler(BandDecoder):
 #
 def parse_packet(payload):
     #print(payload)
-    #hexdump(payload)
+    #bd.hexdump(payload)
     payload_len = len(payload)
     #print("Payload Length = ", payload_len)
+
     if (payload_len > 16):
         mh.switch_case(payload, payload_len )  # this extracts and routes messages to functions
+
     #snapshot = tracemalloc.take_snapshot()
     #top_stats = snapshot.statistics('lineno')
     #for stat in top_stats[:10]:
@@ -897,15 +947,21 @@ def tcp_sniffer(args):
       payload = 0
       payload_len = 0
       header_len = 0
-      
-      print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025")
-      
+
+      print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025", flush=True)
+      cpu = bd.get_cpu_temp()
+      (temp, hum, temp_F) = bd.read_temps()
+      print(" T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": temp_F, "h": hum, "c": cpu}, flush=True) # sub in 'temp' for deg C
+
       while (1):
 
         #tcpdump_running = sub.run(['pgrep','tcpdump'], stdout=sub.PIPE).stdout.decode('utf-8').strip()  # check if tcpdump already running
 
         if (1): #not tcpdump_running:
+            # This one filters out more, no spectrum stuff     
             tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','dst','port','50004','and','tcp','and','greater','229']   #(tcp and port 50004 and greater 229)']
+            # This one includes the other direction which includes spectrum stuff, especially 0xe801.
+            #tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','port','50004','and','tcp','and','greater','229']
             p = sub.Popen(tcpdump_command, stdout=sub.PIPE, text=True)  #, stderr=sub.PIPE)
             payload_str = ""
             payload_line = ""
@@ -950,7 +1006,6 @@ def tcp_sniffer(args):
                      parse_packet(payload)  #  process our new message
                      payload = 0
                      payload_str = ""
-                     
 
 
     except KeyboardInterrupt:
