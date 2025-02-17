@@ -49,6 +49,7 @@ from datetime import datetime as dtime
 #  if dht is enabled, and connection is lost, ther program will try to recover the connection during idle periods
 dht11_enable = True  # enables the sensor and display of temp and humidity
 dht11_OK = True   #  Tracks online status if connection to the DHT11 temp sensor
+dht11_poll_time = 120   # pol lthe DHT11 (if installed) every X seconds.
 TempC = 0
 TempF = 0
 Humidity = 0
@@ -297,6 +298,7 @@ class RepeatedTimer(object):
             self._timer = Timer(self.interval, self._run)
             self._timer.start()
             self.is_running = True
+            self.function(*self.args, **self.kwargs)  # kick off the function
 
     def stop(self):
         self._timer.cancel()
@@ -1114,7 +1116,7 @@ if __name__ == '__main__':
     bd = BandDecoder()
     mh = Message_handler()
     io.gpio_config()
-    dht = RepeatedTimer(10, bd.temps)
+    dht = RepeatedTimer(dht11_poll_time, bd.temps)
     #dc = DecoderThread(tcp_sniffer(sys.argv))
     sys.exit(tcp_sniffer(sys.argv))
     #  Program never returns here
