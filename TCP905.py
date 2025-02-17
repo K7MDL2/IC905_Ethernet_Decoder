@@ -41,12 +41,17 @@ import sys
 import numpy as np
 import time
 import RPi.GPIO as GPIO
-#import tracemalloc
-#from memory_profiler import profile
 import subprocess as sub
-import binascii
+from threading import Timer
+from typing import Callable
+from datetime import datetime as dtime
 
-dht11_OK = True   #  set to True if you have the DHT11 temp sensor wired up, else set to False
+#  if dht is enabled, and connection is lost, ther program will try to recover the connection during idle periods
+dht11_enable = True  # enables the sensor and display of temp and humidity
+dht11_OK = True   #  Tracks online status if connection to the DHT11 temp sensor
+TempC = 0
+TempF = 0
+Humidity = 0
 
 #  Freq_table:
 #  These band edge frequency values are based on the radio message VFO
@@ -182,6 +187,11 @@ IO_table = {
 
 class OutputHandler:
 
+    def get_time(self):
+        d = dtime.now()
+        return d.strftime("%m/%d/%y %H:%M:%S")
+
+
     def gpio_config(self):
         GPIO.setmode(GPIO.BCM)
         for i in IO_table:
@@ -207,7 +217,7 @@ class OutputHandler:
 
                 b = bd.colored(255,235,145, format(str(band),"5"))
                 bp = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(p+" Output for "+b+" Pattern:"+bp, flush=True)
+                print(p,self.get_time(),"Output for "+b+" Pattern:"+bp, flush=True)
 
                 if (ptt):
                     ptt = 0xff
@@ -239,7 +249,7 @@ class OutputHandler:
                 t = bd.colored(235,110,200, "(BAND )")
                 b = bd.colored(255,225,145, format(str(band),"5"))
                 p = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(t+" Output for "+b+" Pattern:"+p, flush=True)
+                print(t,self.get_time(),"Output for "+b+" Pattern:"+p, flush=True)
                 template = 0x0000
 
                 for __pins in IO_table:
@@ -259,6 +269,67 @@ class OutputHandler:
                     #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
                     GPIO.output(io_pin, pin_state)
 
+#-----------------------------------------------------------------------------
+#
+#   Threaded timer for periodic logging of things such as temp, or
+#     restart a failed temp device connection without blocking the main program
+#
+#-----------------------------------------------------------------------------
+
+class RepeatedTimer(object):
+    def __init__(self, interval: int, function: Callable, args=None, kwargs=None):
+        super(RepeatedTimer, self).__init__()
+        self._timer = None
+        self.interval = interval
+        self.function = function
+        self.args = [] if args is None else args
+        self.kwargs = {} if kwargs is None else kwargs
+        self.is_running = False
+        self.start()
+
+    def _run(self):
+        self.is_running = False
+        self.start()
+        self.function(*self.args, **self.kwargs)
+
+    def start(self):
+        if not self.is_running:
+            self._timer = Timer(self.interval, self._run)
+            self._timer.start()
+            self.is_running = True
+
+    def stop(self):
+        self._timer.cancel()
+        self.is_running = False
+
+#  __________________________________________________________________
+#
+#  Packet data processing function thread object
+#  __________________________________________________________________
+#
+
+class DecoderThread(object):
+    def __init__(self, function: Callable, args=None, kwargs=None):
+        super(DecoderThread, self).__init__()
+        self._timer = None
+        self.function = function
+        self.args = [] if args is None else args
+        self.kwargs = {} if kwargs is None else kwargs
+        self.is_running = False
+        self.start()
+
+    def _run(self):
+        self.is_running = False
+        self.start()
+        self.function(*self.args, **self.kwargs)
+
+    def start(self):
+        if not self.is_running:
+            self.is_running = True
+
+    def stop(self):
+        self._timer.cancel()
+        self.is_running = False
 
 #  __________________________________________________________________
 #
@@ -295,6 +366,7 @@ class BandDecoder(OutputHandler):
         self.in_menu = 0
         self.PTT_hang_time = 0.3
 
+
     def hexdump(self, data: bytes):
         def to_printable_ascii(byte):
             return chr(byte) if 32 <= byte <= 126 else "."
@@ -306,7 +378,6 @@ class BandDecoder(OutputHandler):
             ascii_values = "".join(to_printable_ascii(byte) for byte in chunk)
             print(f"{offset:08x}  {hex_values:<48}  |{ascii_values}|")
             offset += 16
-
 
 # -------------------------------------------------------------------
 #
@@ -329,37 +400,51 @@ class BandDecoder(OutputHandler):
 
     def read_temps(self):
         global dht11_OK
-        t = h = tF = 0    #  a value of zero inidicates failure so starting with 1
+        global dht_enable
+        global TempC
+        global TempF
+        global Humidity
 
-        if (dht11_OK == False):   # failures result in bus timeout delays so do not try again
+        t = h = tF = 2    #  a value of zero inidicates failure so starting with 1
+
+        if (dht11_enable == False):   # failures result in bus timeout delays so do not try again
             return t, h, tF
 
         try:
             if  (dht11_OK):
                 t = self.read_dht("/sys/bus/iio/devices/iio:device0/in_temp_input")/1000
+                #time.sleep(0.2)
                 h = self.read_dht("/sys/bus/iio/devices/iio:device0/in_humidityrelative_input")/1000
+                #time.sleep(0.2)
                 tF = t * (9 / 5) + 32
 
-        # if failure due to device not present bus timeout delays happen so shut off further attempts
+        # If failure is due to device not present, bus timeout delays
+        # since we are running in our own thread we can retry the read and
+        # bus timeouts won't affect the main radio message handling
+
         except RuntimeError as error:
             # Errors happen fairly often, DHT's are hard to read, just keep going
             print("DHT11 RunTime Eror =", error.args[0], flush=True)
             t = h = tF = 0
-            dht11_OK = False
+            dht11_OK = True
 
         except Exception as error:
             print("DHT11 Read error = ",error, flush=True)
             t = h = tF = 0
-            dht11_OK = False
+            dht11_OK = True
             #raise error
+
+        TempC = t
+        TempF = tF
+        Humidity = h
 
         return t, h, tF
 
 
     def temps(self):
         (temp, hum, temp_F) = self.read_temps()
-        #if temp != "N/A" and hum != "N/A" and cpu != "N/A":
-        print("Temperature %(t)0.2f°C, Humidity: %(h)0.2f%%  %(f)0.2f%%" % {"t": temp, "h": hum, "f": temp_F})
+        cpu = self.get_cpu_temp()
+        print("Temperature %(f)0.1f°F  %(t)0.1f°C  Humidity: %(h)0.1f%%  CPU: %(c)s°C" % {"t": temp, "h": hum, "f": temp_F, 'c': cpu})
 
 
     def check_msg_valid(self):
@@ -374,9 +459,13 @@ class BandDecoder(OutputHandler):
 
 
     def p_status(self, TAG):
-        (temp, hum, temp_F) = self.read_temps()
+        global TempC
+        global TempF
+        global Humidity
         cpu = self.get_cpu_temp()
+        tim = dtime.now()
         print(bd.colored(155,180,200,"("+TAG+")"),
+            tim.strftime("%m/%d/%y %H:%M:%S%Z"),
             " VFOA Band:"+bd.colored(255,225,165,format(self.vfoa_band,"4")),
             " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")),
             " B:"+bd.colored(215,215,215,format(self.unselected_vfo, "11")),
@@ -387,16 +476,16 @@ class BandDecoder(OutputHandler):
             " P:"+format(self.preamp_status, "1"),
             " A:"+format(self.atten_status, "1"),
             " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
-            #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus,and.or when there is spectrum flowing not sure which
+            #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus, and/or when there is spectrum flowing not sure which
             " Src:0x"+format(self.payload_ID, "04x"),
-            " T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": temp_F, "h": hum, "c": cpu}, # sub in 'temp' for deg C
+            " T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": TempF, "h": Humidity, "c": cpu}, # sub in 'temp' for deg C
             flush=True)
 
 
     # If we see corrupt values then look at the source.
     # Some messages are overloaded - meaning they can have radio
     #   status or have other spectrum like data in the same length
-    #   and ID+Attrib combo/   Calling check_msg_valid to filter out
+    #   and ID+Attrib combo.  Calling check_msg_valid to filter out
     #   bad stuff based on observed first row byte patterns
 
     def case_x18(self):  # process items in message id # 0x18
@@ -950,15 +1039,15 @@ def tcp_sniffer(args):
 
       print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025", flush=True)
       cpu = bd.get_cpu_temp()
-      (temp, hum, temp_F) = bd.read_temps()
-      print(" T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": temp_F, "h": hum, "c": cpu}, flush=True) # sub in 'temp' for deg C
+      #(TempC, Humidity, TempF) = bd.read_temps()
+      #print(" T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": TempF, "h": Humidity, "c": cpu}, flush=True) # sub in 'temp' for deg C
 
       while (1):
 
         #tcpdump_running = sub.run(['pgrep','tcpdump'], stdout=sub.PIPE).stdout.decode('utf-8').strip()  # check if tcpdump already running
 
         if (1): #not tcpdump_running:
-            # This one filters out more, no spectrum stuff     
+            # This one filters out more, no spectrum stuff
             tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','dst','port','50004','and','tcp','and','greater','229']   #(tcp and port 50004 and greater 229)']
             # This one includes the other direction which includes spectrum stuff, especially 0xe801.
             #tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','port','50004','and','tcp','and','greater','229']
@@ -1009,9 +1098,14 @@ def tcp_sniffer(args):
 
 
     except KeyboardInterrupt:
-        #print('Done', i)
         print('Done')
+        dht.stop()
+        #dc.stop()
+
+
+    finally:
         GPIO.cleanup()
+        #sys.exit()
 
 
 if __name__ == '__main__':
@@ -1020,8 +1114,10 @@ if __name__ == '__main__':
     bd = BandDecoder()
     mh = Message_handler()
     io.gpio_config()
-    #tracemalloc.start()
+    dht = RepeatedTimer(10, bd.temps)
+    #dc = DecoderThread(tcp_sniffer(sys.argv))
     sys.exit(tcp_sniffer(sys.argv))
+    #  Program never returns here
     io = None
     bd = None
     mh = None
