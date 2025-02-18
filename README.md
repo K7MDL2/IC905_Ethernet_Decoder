@@ -27,6 +27,19 @@ My long term setup uses 2 managed switches. A 16-port TL-SG116E in the shack and
 
 I only need to switch 1 antenna among the 3 RF outputs so I will use a 28V SP6T coax switch with a relay 'Hat" on the Pi which is located in the remote box on the ground.  50ft of rotator cable will run to the coax switch mounted next to the RF Unit to keep the coax jumpers short.
 
+Here is a Pi 3B with a BEVRLink 4-channel Relay HAT board that will operate a up to 4 ports on the SP6T coax switch out at the RF unit.  I picked 4 relays so I have the option of using it as a 3-wire BCD + PTT to my Remote BCD Decoder board.  The Pi will be 100ft for the house and there is 50ft more to the RF Unit.  The blue device is a DHT11 temp and humidity sensor, more on that below.
+
+![20250217_210707](https://github.com/user-attachments/assets/e6b00f2f-1630-45c5-92c6-0372456de6d6)
+
+Here is a view between the relay and CPU board with a fan -cooled heat sink now mounted.  Despite the relay HAT having an already tall header, it was not enough to clear the heat sink.  I used a 2x20 row extender and some 2.5mm hex standoffs to raise the board and the fan cooler now has lot so airflow room.  The CPU is sitting on the bottom half of a 3D printed enclosure.  
+
+![20250217_211132](https://github.com/user-attachments/assets/fecfcc09-ab11-4572-8b31-a3a69cc97189)
+
+The aluminum plate under the CPU a Budd die cast box.  I am thinking of mounting the CPU to the plate along with a bulkhead ethernet jack and cable connector of some type TBD for the external relays it will control.  With the plate on the bottom the box becomes a weatherproof cover and can transfer internal heat to the outside (and the other way around).  It may need vent holes with a insect filter added in the plate under the CPU, TBD.  I could also put a small 12 or 28V to 5V 3A DC-DC converter inside if it was to be remote mounted someday.  In my first usage it will get 5V externally since I also need 5V@A for the TL-SG105E managed switch that will be near it and the POE injector in my outside cabinet.  28V need to get the relays for the coax switch control on 3 of the relays. 
+
+The 4th relay will supply 28V to the POE injector so I can toggle the power to it.  I am thinking that if I see a formal shutdown message (still to be confirmed) or worst case startup ARP messages, I can toggle the power.  I have had a number of random connection losses and I have some shaky evidence that when the RF Unit and Controller lose conmenction the recovery is difficult without power cycling as the radio would normally do direct connected. 
+ Power cycling the POE injector seems to help recover the connection (based on limited testing).
+
 -----------------------------------------------
 
 ### Band Decoder programs
@@ -45,11 +58,15 @@ TCP905v2.py has been replaced with v3 and moved to the Archive folder.  v2 used 
 
 In v3 I run tcpdump as a Python subprocess, piping it's unbuffered output into the program where I then parse out the packet and payload lengths and the payload data.  It uses about 3.7% memory and CPU varies from near 0% up to 100% instantaneously when processing a very high rate of events such as rapidly spinning the VFO for a long duration.  Since tcpdump is configured to only pass along packets > 229 bytes, and the program tosses packets > 360 bytes, between messages the program sits nearly idle and consuming almost no CPU and memory stays constant.
 
-A feature just added is CPU and external temperature and humidity from a DHT11 sensor.  The main reason to develop this ethenet version of band decoder is to leverage the radio's ethernet and break out decoding info near teh RF unit which is likely on a mast or tower and in, at times, extreme temps, it would be good to record those temps.  I added code for a DHT11 one-wire sensor which is very common and inexpensive.  The data is logged with each radio event, printed at the end of the event line which is stored in the log file in /tmp/Decoder905.log.  The install script sets up the GPIO pin and dtoverlay line in /boot/firmware/config.txt so the OS can read the device.  No 3rd party modules are required with the latest OS version (bookworm).  A one line script 'chk_dht11' will check the OS is reading the device properly.  The device specs say the DHT11 only reads down to 32F (0C) so a better sensor may be in the future.  It was what I had here.  There is a variable at the top of the file to turn it in or off.  It is on by default.  At startup an attempt is made to read it and if there is a problem then, or any time later, it will be disabled and further reads will incur no bus delays.
+A feature just added is CPU and external temperature and humidity from a DHT11 sensor.  The main reason to develop this ethernet version of band decoder is to leverage the radio's ethernet and break out decoding info near the RF unit which is likely mounted on a mast or tower.  It will be at times in extreme temps so it would be good to record those temps.  I added code for a DHT11 one-wire sensor which is very common and inexpensive.  The data is logged periodically (120 seconds by default), printed at the end of the event line which is stored in the log file in /tmp/Decoder905.log.  Evenually this data will be stored in its own history file.   The install script sets up the GPIO pin and dtoverlay= line in /boot/firmware/config.txt so the OS can read the device.  No 3rd party modules are required with the latest OS version (bookworm).  A one line script 'chk_dht11' will check the OS is reading the device properly.  The device specs say the DHT11 only reads down to 32F (0C) so a better sensor may be in the future.  It was what I had here.  There is a variable at the top of the TCP905.py file to turn it in or off.  It is on by default.  The temp read function runs in a separate thread if there is a problem reading it, and a bus timout occurs (1sec each read attempt), it keep trying and no impact is made to the main radio message processing portion of the program.
 
-Here is the latast screen shot with temps now seen. At the top is the version startup banner and you can see th GPIO pin assignments.
+Here is the latest screen shots with the version startup banner and you can see the GPIO pin assignments and patterns.  
 
-![{A587BCD9-3A8E-423E-B672-D7B5DEA7185E}](https://github.com/user-attachments/assets/b40f324e-a820-4713-a5bc-94138d57d4b9)
+![{0EA4CB3E-4119-487A-A2E6-752973DDE5BD}](https://github.com/user-attachments/assets/59f244a6-546c-4cc3-a7ae-628b58333e4a)
+
+I have since added time-stamped temperature/humidity data message with it's own message label (TEMP ).  That data is also output to a separate log file /tmp/Temperatures.log.  That may be relocated in the near future to somewhere like /.
+
+![{BE7193F2-4792-4459-96F0-9521A76AFB52}](https://github.com/user-attachments/assets/390eda56-f7fc-4145-8ad4-d4697868b416)
 
 Install scripts are updated and I am using the generic progam name TCP905.py. I have started to change doc references to leave out the version part of the name.
 
