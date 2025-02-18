@@ -29,7 +29,16 @@ I only need to switch 1 antenna among the 3 RF outputs so I will use a 28V SP6T 
 
 Here is a Pi 3B with a BEVRLink 4-channel Relay HAT board that will operate a up to 4 ports on the SP6T coax switch out at the RF unit.  I picked 4 relays so I have the option of using it as a 3-wire BCD + PTT to my Remote BCD Decoder board.  The Pi will be 100ft for the house and there is 50ft more to the RF Unit.  The blue device is a DHT11 temp and humidity sensor, more on that below.
 
-![20250216_235620](https://github.com/user-attachments/assets/e4b9e986-ac8d-464a-94bb-85cb883f90e6)
+![20250217_210707](https://github.com/user-attachments/assets/e6b00f2f-1630-45c5-92c6-0372456de6d6)
+
+Here is a view between the relay and CPU board with a fan -cooled heat sink now mounted.  Despite the relay HAT having an already tall header, it was not enough to clear the heat sink.  I used a 2x20 row extender and some 2.5mm hex standoffs to raise the board and the fan cooler now has lot so airflow room.  The CPU is sitting on the bottom half of a 3D printed enclosure.  
+
+![20250217_211132](https://github.com/user-attachments/assets/fecfcc09-ab11-4572-8b31-a3a69cc97189)
+
+The aluminum plate under the CPU a Budd die cast box.  I am thinking of mounting the CPU to the plate along with a bulkhead ethernet jack and cable connector of some type TBD for the external relays it will control.  With the plate on the bottom the box becomes a weatherproof cover and can transfer internal heat to the outside (and the other way around).  It may need vent holes with a insect filter added in the plate under the CPU, TBD.  I could also put a small 12 or 28V to 5V 3A DC-DC converter inside if it was to be remote mounted someday.  In my first usage it will get 5V externally since I also need 5V@A for the TL-SG105E managed switch that will be near it and the POE injector in my outside cabinet.  28V need to get the relays for the coax switch control on 3 of the relays. 
+
+The 4th relay will supply 28V to the POE injector so I can toggle the power to it.  I am thinking that if I see a formal shutdown message (still to be confirmed) or worst case startup ARP messages, I can toggle the power.  I have had a number of random connection losses and I have some shaky evidence that when the RF Unit and Controller lose conmenction the recovery is difficult without power cycling as the radio would normally do direct connected. 
+ Power cycling the POE injector seems to help recover the connection (based on limited testing).
 
 -----------------------------------------------
 
