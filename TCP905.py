@@ -49,7 +49,7 @@ from datetime import datetime as dtime
 #  if dht is enabled, and connection is lost, ther program will try to recover the connection during idle periods
 dht11_enable = True  # enables the sensor and display of temp and humidity
 dht11_OK = True   #  Tracks online status if connection to the DHT11 temp sensor
-dht11_poll_time = 120   # pol lthe DHT11 (if installed) every X seconds.
+dht11_poll_time = 300   # pol lthe DHT11 (if installed) every X seconds.
 TempC = 0
 TempF = 0
 Humidity = 0
@@ -377,7 +377,7 @@ class BandDecoder(OutputHandler):
             chunk = data[offset : offset + 16]
             hex_values = " ".join(f"{byte:02x}" for byte in chunk)
             ascii_values = "".join(to_printable_ascii(byte) for byte in chunk)
-            print(f"{offset:08x}  {hex_values:<48}  |{ascii_values}|")
+            print(f"{offset:08x}  {hex_values:<48}  |{ascii_values}|", flush=True)
             offset += 16
 
 # -------------------------------------------------------------------
@@ -424,9 +424,7 @@ class BandDecoder(OutputHandler):
         try:
             if  (dht11_OK):
                 t = self.read_dht("/sys/bus/iio/devices/iio:device0/in_temp_input")/1000
-                #time.sleep(0.2)
                 h = self.read_dht("/sys/bus/iio/devices/iio:device0/in_humidityrelative_input")/1000
-                #time.sleep(0.2)
                 tF = t * (9 / 5) + 32
 
         # If failure is due to device not present, bus timeout delays
@@ -453,7 +451,10 @@ class BandDecoder(OutputHandler):
 
 
     def temps(self):
-        (temp, hum, temp_F) = self.read_temps()
+        if dht11_enable:
+            (temp, hum, temp_F) = self.read_temps()
+        else:
+            temp = hum= temp_F = 0
         cpu = self.get_cpu_temp()
         tim = dtime.now()
         temp_str = (tim.strftime("%m/%d/%Y %H:%M:%S%Z")+"  Temperature: %(f)0.1f°F  %(t)0.1f°C  Humidity: %(h)0.1f%%  CPU: %(c)s°C" % {"t": temp, "h": hum, "f": temp_F, 'c': cpu})
@@ -1023,12 +1024,64 @@ class Message_handler(BandDecoder):
 #  Read config file
 #--------------------------------------------------------------------
 
+def str_to_bool(s):
+    return {'true': True, 'false': False}.get(s.lower(), False)
+
 def read_config():
+    global dht11_enable
+    global dht11_poll_time
+
     config_file = os.path.expanduser("~/Decoder905.config")
     try:
         with open(config_file,"r") as file:
-            line = file.readline()
-            print(line)
+            key_value_pairs = {}
+            current_key = None
+            current_value = None
+            for line in file:
+                line = line.strip()
+                # Check if the line is empty or a comment (starts with #)
+                if not line or line.startswith('#'):
+                    # Skip this line
+                    continue
+                # Check if the line starts with a tab character
+                elif line.startswith('\t'):
+                    # Check if we have a current key and value
+                    if current_key is not None and current_value is not None:
+                        # Append the line to the current value
+                        current_value += '\n' + line.lstrip()
+                    else:
+                        # Log an error and skip this line
+                        print(f"Error: Invalid line format - {line}")
+                        continue
+                else:
+                    # Check if we have a current key and value
+                    if current_key is not None and current_value is not None:
+                        # Add the current key-value pair to the dictionary
+                        key_value_pairs[current_key] = current_value
+                    # Split the line into key and value
+                    key_value = line.split('=', 1)
+                    if len(key_value) != 2:
+                        # Log an error and skip this line
+                        print(f"Error: Invalid line format - {line}")
+                        continue
+                    # Set the current key and value
+                    current_key = key_value[0].strip()
+                    current_value = key_value[1].strip()
+            # Check if we have a current key and value
+            if current_key is not None and current_value is not None:
+                # Add the current key-value pair to the dictionary
+                key_value_pairs[current_key] = current_value
+            # Return the dictionary of key-value pairs
+            print(key_value_pairs)
+            #for key in key_value_pairs:
+            dht11_enable = str_to_bool(key_value_pairs['DHT11_ENABLE'])
+            dht11_poll_time = int(key_value_pairs['DHT11_TIME'])
+            saved_split = key_value_pairs['RADIO_SPLIT']
+            saved_band = key_value_pairs['RADIO_BAND']
+            #gpio_band_pin_144 = key_value_pairs['GPIO_BAND']
+
+            #return key_value_pairs
+
     except FileNotFoundError:
             print(f"The file {config_file} does not exist in the home directory.")
     except Exception as e:
