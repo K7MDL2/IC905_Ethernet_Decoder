@@ -1120,8 +1120,9 @@ def tcp_sniffer(args):
       payload_len = 0
       header_len = 0
 
-      print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025", flush=True)
-      cpu = bd.get_cpu_temp()
+      print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025")
+      tim = dtime.now()
+      print("Startup at", tim.strftime("%m/%d/%Y %H:%M:%S%Z"), flush=True)
 
       while (1):
 
