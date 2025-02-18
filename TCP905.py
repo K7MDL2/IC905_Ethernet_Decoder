@@ -142,20 +142,20 @@ Freq_table = { '2M': {
 # This is set up for  3-wire BCD Band and 1-wire PTT for the Remote BCD DEcdoer board
 IO_table = {
                  0x01 : {
-                      'band_pin':4,
-                   'band_invert':True,
-                       'ptt_pin':17,
-                    'ptt_invert':True,
+                      'band_pin':5,  #4,
+                   'band_invert':False,
+                       'ptt_pin':16, #17,
+                    'ptt_invert':False,
                  },
                  0x02 : {
-                      'band_pin':3,
-                   'band_invert':True,
+                      'band_pin':6,  #3,
+                   'band_invert':False,
                        'ptt_pin':0,
                     'ptt_invert':True,
                  },
                  0x04 : {
-                      'band_pin':2,
-                   'band_invert':True,
+                      'band_pin':13, #2,
+                   'band_invert':False,
                        'ptt_pin':0,
                     'ptt_invert':True,
                  },
@@ -218,7 +218,7 @@ class OutputHandler:
 
                 b = bd.colored(255,235,145, format(str(band),"5"))
                 bp = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(p,self.get_time(),"Output for "+b+" Pattern:"+bp, flush=True)
+                print(p,"Output for "+b+" Pattern:"+bp, flush=True)
 
                 if (ptt):
                     ptt = 0xff
@@ -250,7 +250,7 @@ class OutputHandler:
                 t = bd.colored(235,110,200, "(BAND )")
                 b = bd.colored(255,225,145, format(str(band),"5"))
                 p = bd.colored(0,255,255, format(band_pattern,'06b'))
-                print(t,self.get_time(),"Output for "+b+" Pattern:"+p, flush=True)
+                print(t,"Output for "+b+" Pattern:"+p, flush=True)
                 template = 0x0000
 
                 for __pins in IO_table:
@@ -298,7 +298,6 @@ class RepeatedTimer(object):
             self._timer = Timer(self.interval, self._run)
             self._timer.start()
             self.is_running = True
-            self.function(*self.args, **self.kwargs)  # kick off the function
 
     def stop(self):
         self._timer.cancel()
@@ -394,6 +393,16 @@ class BandDecoder(OutputHandler):
         temp = os.popen("vcgencmd measure_temp").readline()
         return temp.replace("temp=", "").strip()[:-2]
 
+    def write_temps(self, line):   #, file):
+        file_path = os.path.expanduser('~/Temperatures.log')
+        try:
+            with open(file_path,'a') as file:
+                file.write(line)
+        except  FileNotFoundError:
+            print(f"The file {file} does nto exist int eh home directory.")
+        except Exception as e:
+            print(f"An error occured: {e}")
+
     def read_dht(self, file):
         f = open(file,"rt")
         value = int(f.readline())
@@ -446,7 +455,10 @@ class BandDecoder(OutputHandler):
     def temps(self):
         (temp, hum, temp_F) = self.read_temps()
         cpu = self.get_cpu_temp()
-        print("Temperature %(f)0.1f°F  %(t)0.1f°C  Humidity: %(h)0.1f%%  CPU: %(c)s°C" % {"t": temp, "h": hum, "f": temp_F, 'c': cpu})
+        tim = dtime.now()
+        temp_str = (tim.strftime("%m/%d/%Y %H:%M:%S%Z")+"  Temperature: %(f)0.1f°F  %(t)0.1f°C  Humidity: %(h)0.1f%%  CPU: %(c)s°C" % {"t": temp, "h": hum, "f": temp_F, 'c': cpu})
+        print(bd.colored(100,120,255,"(TEMP )"), temp_str, flush=True)
+        self.write_temps(temp_str+"\n")
 
 
     def check_msg_valid(self):
@@ -465,9 +477,9 @@ class BandDecoder(OutputHandler):
         global TempF
         global Humidity
         cpu = self.get_cpu_temp()
-        tim = dtime.now()
-        print(bd.colored(155,180,200,"("+TAG+")"),
-            tim.strftime("%m/%d/%y %H:%M:%S%Z"),
+        #tim = dtime.now()
+        print(bd.colored(175,210,240,"("+TAG+")"),
+            #tim.strftime("%m/%d/%y %H:%M:%S%Z"),
             " VFOA Band:"+bd.colored(255,225,165,format(self.vfoa_band,"4")),
             " A:"+bd.colored(255,255,255,format(self.selected_vfo, "11")),
             " B:"+bd.colored(215,215,215,format(self.unselected_vfo, "11")),
@@ -480,7 +492,7 @@ class BandDecoder(OutputHandler):
             " PTT:"+bd.colored(115,195,110,format(self.ptt_state, "1")),
             #" Menu:"+format(self.in_menu, "1"),   #  this toggles 0/1 when in menus, and/or when there is spectrum flowing not sure which
             " Src:0x"+format(self.payload_ID, "04x"),
-            " T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": TempF, "h": Humidity, "c": cpu}, # sub in 'temp' for deg C
+            #" T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": TempF, "h": Humidity, "c": cpu}, # sub in 'temp' for deg C
             flush=True)
 
 
@@ -1006,6 +1018,22 @@ class Message_handler(BandDecoder):
         self.payload_len = None
         self.payload_ID = None
 
+
+#--------------------------------------------------------------------
+#  Read config file
+#--------------------------------------------------------------------
+
+def read_config():
+    config_file = os.path.expanduser("~/Decoder905.config")
+    try:
+        with open(config_file,"r") as file:
+            line = file.readline()
+            print(line)
+    except FileNotFoundError:
+            print(f"The file {config_file} does not exist in the home directory.")
+    except Exception as e:
+            print(f"An error occurred: {e}")
+
 #  __________________________________________________________________
 #
 #   Packet Capture and Filtering
@@ -1041,8 +1069,6 @@ def tcp_sniffer(args):
 
       print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025", flush=True)
       cpu = bd.get_cpu_temp()
-      #(TempC, Humidity, TempF) = bd.read_temps()
-      #print(" T:%(t)0.1f°F  H:%(h)0.1f%%  CPU:%(c)s°C" % {"t": TempF, "h": Humidity, "c": cpu}, flush=True) # sub in 'temp' for deg C
 
       while (1):
 
@@ -1104,21 +1130,22 @@ def tcp_sniffer(args):
         dht.stop()
         #dc.stop()
 
-
     finally:
         GPIO.cleanup()
-        #sys.exit()
+        sys.exit()
 
 
 if __name__ == '__main__':
-    import sys
+    #import sys
     io = OutputHandler()  # instantiate our classes
     bd = BandDecoder()
     mh = Message_handler()
     io.gpio_config()
+    read_config()
+    bd.write_temps("Program Startup\n")
     dht = RepeatedTimer(dht11_poll_time, bd.temps)
-    #dc = DecoderThread(tcp_sniffer(sys.argv))
-    sys.exit(tcp_sniffer(sys.argv))
+    #dc = DecoderThread(tcp_sniffer(sys.argv))   # option to run main program in a thread
+    tcp_sniffer(sys.argv)
     #  Program never returns here
     io = None
     bd = None

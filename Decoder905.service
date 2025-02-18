@@ -1,15 +1,16 @@
 [Unit]
 Description=IC905 band Decoder
-After=multi-user.target
-
-[Service]
-Type=idle
-ExecStart=/usr/bin/python3 /usr/local/bin/TCP905.py
-StandardOutput=file:/tmp/Decoder905.log
-Restart=always
-RestartSec=1
+After=default.target
 
 [Install]
 WantedBy=default.target
 Alias=Decoder905.service
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /usr/local/bin/TCP905.py
+StandardOutput=append:Decoder905.log
+StandardErr=file:Decoder.err 
+Restart=always
+RestartSec=1
 
