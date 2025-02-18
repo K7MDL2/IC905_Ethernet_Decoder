@@ -51,9 +51,13 @@ In v3 I run tcpdump as a Python subprocess, piping it's unbuffered output into t
 
 A feature just added is CPU and external temperature and humidity from a DHT11 sensor.  The main reason to develop this ethernet version of band decoder is to leverage the radio's ethernet and break out decoding info near the RF unit which is likely mounted on a mast or tower.  It will be at times in extreme temps so it would be good to record those temps.  I added code for a DHT11 one-wire sensor which is very common and inexpensive.  The data is logged periodically (120 seconds by default), printed at the end of the event line which is stored in the log file in /tmp/Decoder905.log.  Evenually this data will be stored in its own history file.   The install script sets up the GPIO pin and dtoverlay= line in /boot/firmware/config.txt so the OS can read the device.  No 3rd party modules are required with the latest OS version (bookworm).  A one line script 'chk_dht11' will check the OS is reading the device properly.  The device specs say the DHT11 only reads down to 32F (0C) so a better sensor may be in the future.  It was what I had here.  There is a variable at the top of the TCP905.py file to turn it in or off.  It is on by default.  The temp read function runs in a separate thread if there is a problem reading it, and a bus timout occurs (1sec each read attempt), it keep trying and no impact is made to the main radio message processing portion of the program.
 
-Here is the latest screen shot with temps now seen. At the top is the version startup banner and you can see th GPIO pin assignments.  I have sine added a date stamp to the right of the Message Label.
+Here is the latest screen shots with the version startup banner and you can see the GPIO pin assignments and patterns.  
 
-![{A587BCD9-3A8E-423E-B672-D7B5DEA7185E}](https://github.com/user-attachments/assets/b40f324e-a820-4713-a5bc-94138d57d4b9)
+![{0EA4CB3E-4119-487A-A2E6-752973DDE5BD}](https://github.com/user-attachments/assets/59f244a6-546c-4cc3-a7ae-628b58333e4a)
+
+I have since added time-stamped temperature/humidity data message with it's own message label (TEMP ).  That data is also output to a separate log file /tmp/Temperatures.log.  That may be relocated in the near future to somewhere like /.
+
+![{BE7193F2-4792-4459-96F0-9521A76AFB52}](https://github.com/user-attachments/assets/390eda56-f7fc-4145-8ad4-d4697868b416)
 
 Install scripts are updated and I am using the generic progam name TCP905.py. I have started to change doc references to leave out the version part of the name.
 
