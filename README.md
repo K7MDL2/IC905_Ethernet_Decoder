@@ -37,6 +37,10 @@ Here is a view between the relay and CPU board with a fan -cooled heat sink now 
 
 The aluminum plate under the CPU a Budd die cast box.  I am thinking of mounting the CPU to the plate along with a bulkhead ethernet jack and cable connector of some type TBD for the external relays it will control.  With the plate on the bottom the box becomes a weatherproof cover and can transfer internal heat to the outside (and the other way around).  It may need vent holes with a insect filter added in the plate under the CPU, TBD.  I could also put a small 12 or 28V to 5V 3A DC-DC converter inside if it was to be remote mounted someday.  In my first usage it will get 5V externally since I also need 5V@A for the TL-SG105E managed switch that will be near it and the POE injector in my outside cabinet.  28V need to get the relays for the coax switch control on 3 of the relays. 
 
+The DHT11 and fan wire connections were not very secure and I wanted to fan to switch on and off according to temperature.  I assembled a small perfboard with JST connectors and a PN2222A transistor to switch the fan.  I soldered the JST plug side pins directly on to the DHT11 pins so it just plugs into the board and I do not need to mount it separately.  I can unplug it and build an extension cable if I find the sensor is too close to the CPU.
+
+![20250218_150015](https://github.com/user-attachments/assets/d70a0c71-1a69-49ca-b2f9-501a4cbd390a)
+
 The 4th relay will supply 28V to the POE injector so I can toggle the power to it.  I am thinking that if I see a formal shutdown message (still to be confirmed) or worst case startup ARP messages, I can toggle the power.  I have had a number of random connection losses and I have some shaky evidence that when the RF Unit and Controller lose conmenction the recovery is difficult without power cycling as the radio would normally do direct connected. 
  Power cycling the POE injector seems to help recover the connection (based on limited testing).
 
