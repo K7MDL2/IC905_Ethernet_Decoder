@@ -39,10 +39,9 @@ The aluminum plate under the CPU a Budd die cast box.  I am thinking of mounting
 
 The DHT11 and fan wire connections were not very secure and I wanted to fan to switch on and off according to temperature.  I assembled a small perfboard with JST connectors and a PN2222A transistor to switch the fan.  I soldered the JST plug side pins directly on to the DHT11 pins so it just plugs into the board and I do not need to mount it separately.  I can unplug it and build an extension cable if I find the sensor is too close to the CPU.
 
-![20250218_150015](https://github.com/user-attachments/assets/d70a0c71-1a69-49ca-b2f9-501a4cbd390a)
+![20250220_101713](https://github.com/user-attachments/assets/11fea046-59ec-4f0a-8697-f2f1d9b8a58c)
 
-The 4th relay will supply 28V to the POE injector so I can toggle the power to it.  I am thinking that if I see a formal shutdown message (still to be confirmed) or worst case startup ARP messages, I can toggle the power.  I have had a number of random connection losses and I have some shaky evidence that when the RF Unit and Controller lose conmenction the recovery is difficult without power cycling as the radio would normally do direct connected. 
- Power cycling the POE injector seems to help recover the connection (based on limited testing).
+The 4th relay supplies 28V to the POE injector so I can remotely toggle the power if needed.  I have had a number of random connection losses and I have some shaky evidence that when the RF Unit and Controller lose connection, the recovery is difficult without power cycling as the radio would normally do directly connected.   Power cycling the POE injector seems to help recover the connection (based on limited testing).  Automating the power relay automation will be difficult.  The delay for the POE inserter to fully power on is longer than the last ARP message which is when the controller gives up.  Upon loss the RF Unit will issue ARP 5 times but if the controller has already given up it will not connect.  I have seen one time where the controller continued to VFO changes but not received anything on the spectrum or audio.
 
 -----------------------------------------------
 
