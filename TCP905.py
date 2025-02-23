@@ -816,7 +816,6 @@ class Message_handler(BandDecoder):
             case 0x0000: self.unhandled(),  # 0x00 00 - 260 bytes  2nd message at startup
             case 0x0001: self.unhandled(),  # 0x00 01 - 264 bytes in DV mode next to 04 packets spectrum likely
             case 0x0002: self.unhandled(),  # 0x00 02 - 520 bytes on 2M SSB
-            case 0x0108: self.dump(),       # 0x01 00 - 48 bytes on 1296 USB-D split.  Appears to have freqency info
             case 0x0401: self.unhandled(),  # 0x04 01 - 268 byte in DV mode, was all zeros
             case 0x0403: self.unhandled(),  # 0x04 03 - 780 byte in DV mode, was all zeros
             case 0x0800: self.dump(),       # 0x08 00 - 440 byte was on 2M FM restarting after failure.  Could be a shutdown msg
@@ -1221,7 +1220,7 @@ def tcp_sniffer(args):
 
         if (1): #not tcpdump_running:
             # This one filters out more, no spectrum stuff
-            tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','dst','port','50004','and','tcp','and','greater','229','or','arp']
+            tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','dst','port','50004','and','tcp','and','greater','229']   #,'or','arp']
             # This one includes the other direction which includes spectrum stuff, especially 0xe801.
             #tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','port','50004','and','tcp','and','greater','229']
             p = sub.Popen(tcpdump_command, stdout=sub.PIPE, text=True)  #, stderr=sub.PIPE)
