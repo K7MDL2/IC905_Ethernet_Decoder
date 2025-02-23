@@ -769,6 +769,7 @@ class BandDecoder(OutputHandler):
         #print("heartbeat", self.payload_copy)
         print("(heartbeat) Length:", self.payload_len)
 
+
     def unhandled(self):
         return "unhandled message"
 
@@ -1026,9 +1027,98 @@ class Message_handler(BandDecoder):
 #--------------------------------------------------------------------
 #  Read config file
 #--------------------------------------------------------------------
-
+            
 def str_to_bool(s):
     return {'true': True, 'false': False}.get(s.lower(), False)
+
+
+def read_DHT(key_value_pairs):
+    #for key in key_value_pairs:
+    dht11_enable = str_to_bool(key_value_pairs['DHT11_ENABLE'])
+    dht11_poll_time = int(key_value_pairs['DHT11_TIME'])
+
+
+def read_state(key_value_pairs):        
+    saved_split = key_value_pairs['RADIO_SPLIT']
+    saved_band = key_value_pairs['RADIO_BAND']    
+
+    
+def read_patterns(key_value_pairs):
+    band_2M = int(key_value_pairs['BAND_2M'],base=16)
+    ptt_2M = int(key_value_pairs['PTT_2M'],base=16)
+    print("2M Band pattern:  ", hex(band_2M), "PTT:", hex(ptt_2M))
+    
+    band_70cm = int(key_value_pairs['BAND_70cm'],base=16)
+    ptt_70cm = int(key_value_pairs['PTT_70cm'],base=16)
+    print("70cm Band pattern:", hex(band_70cm), "PTT:", hex(ptt_70cm))
+    
+    band_23cm = int(key_value_pairs['BAND_23cm'],base=16)
+    ptt_23cm = int(key_value_pairs['PTT_23cm'],base=16)
+    print("23cm Band pattern:", hex(band_23cm), "PTT:", hex(ptt_23cm))
+    
+    band_13cm = int(key_value_pairs['BAND_13cm'],base=16)
+    ptt_13cm = int(key_value_pairs['PTT_13cm'],base=16)
+    print("13cm Band pattern:", hex(band_13cm), "PTT:", hex(ptt_13cm))
+    
+    band_6cm = int(key_value_pairs['BAND_6cm'],base=16)
+    ptt_6cm = int(key_value_pairs['PTT_6cm'],base=16)
+    print("6cm Band pattern: ", hex(band_6cm), "PTT:", hex(ptt_6cm))
+    
+    band_3cm = int(key_value_pairs['BAND_3cm'],base=16)
+    ptt_3cm = int(key_value_pairs['PTT_3cm'],base=16)
+    print("3cm Band pattern: ", hex(band_3cm), "PTT:", hex(ptt_3cm))
+
+
+def read_band_pins(key_value_pairs):    
+    gpio_band_0_pin = int(key_value_pairs['GPIO_BAND_0_PIN'])
+    gpio_band_0_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_0_PIN_INVERT'])
+    print("Band Pin 0: ", gpio_band_0_pin, " Invert:", gpio_band_0_pin_invert)
+
+    gpio_band_1_pin = int(key_value_pairs['GPIO_BAND_1_PIN'])
+    gpio_band_1_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_1_PIN_INVERT'])
+    print("Band Pin 1: ", gpio_band_1_pin, " Invert:", gpio_band_1_pin_invert)
+    
+    gpio_band_2_pin = int(key_value_pairs['GPIO_BAND_2_PIN'])
+    gpio_band_2_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_2_PIN_INVERT'])
+    print("Band Pin 2: ", gpio_band_2_pin, " Invert:", gpio_band_2_pin_invert)
+    
+    gpio_band_3_pin = int(key_value_pairs['GPIO_BAND_3_PIN'])
+    gpio_band_3_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_3_PIN_INVERT'])
+    print("Band Pin 3: ", gpio_band_3_pin, " Invert:", gpio_band_3_pin_invert)
+    
+    gpio_band_4_pin = int(key_value_pairs['GPIO_BAND_4_PIN'])
+    gpio_band_4_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_4_PIN_INVERT'])
+    print("Band Pin 4: ", gpio_band_4_pin, " Invert:", gpio_band_4_pin_invert)
+    
+    gpio_band_5_pin = int(key_value_pairs['GPIO_BAND_5_PIN'])
+    gpio_band_5_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_5_PIN_INVERT'])
+    print("Band Pin 5: ", gpio_band_5_pin, " Invert:", gpio_band_5_pin_invert)
+    
+    
+def read_ptt_pins(key_value_pairs):    
+    gpio_ptt_0_pin = int(key_value_pairs['GPIO_PTT_0_PIN'])
+    gpio_ptt_0_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_0_PIN_INVERT'])
+    print("PTT Pin 0: ", gpio_ptt_0_pin, " Invert:", gpio_ptt_0_pin_invert)
+    
+    gpio_ptt_1_pin = int(key_value_pairs['GPIO_PTT_1_PIN'])
+    gpio_ptt_1_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
+    print("PTT Pin 1: ", gpio_ptt_1_pin, " Invert:", gpio_ptt_1_pin_invert)
+    
+    gpio_ptt_2_pin = int(key_value_pairs['GPIO_PTT_2_PIN'])
+    gpio_ptt_2_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
+    print("PTT Pin 2: ", gpio_ptt_2_pin, " Invert:", gpio_ptt_2_pin_invert)
+    
+    gpio_ptt_3_pin = int(key_value_pairs['GPIO_PTT_3_PIN'])
+    gpio_ptt_3_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_3_PIN_INVERT'])
+    print("PTT Pin 3: ", gpio_ptt_3_pin, " Invert:", gpio_ptt_3_pin_invert)
+    
+    gpio_ptt_4_pin = int(key_value_pairs['GPIO_PTT_4_PIN'])
+    gpio_ptt_4_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_4_PIN_INVERT'])
+    print("PTT Pin 4: ", gpio_ptt_4_pin, " Invert:", gpio_ptt_4_pin_invert)
+    
+    gpio_ptt_5_pin = int(key_value_pairs['GPIO_PTT_5_PIN'])
+    gpio_ptt_5_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_5_PIN_INVERT'])
+    print("PTT Pin 5: ", gpio_ptt_5_pin, " Invert:", gpio_ptt_5_pin_invert)
 
 def read_config():
     global dht11_enable
@@ -1076,13 +1166,11 @@ def read_config():
                 key_value_pairs[current_key] = current_value
             # Return the dictionary of key-value pairs
             print(key_value_pairs)
-            #for key in key_value_pairs:
-            dht11_enable = str_to_bool(key_value_pairs['DHT11_ENABLE'])
-            dht11_poll_time = int(key_value_pairs['DHT11_TIME'])
-            saved_split = key_value_pairs['RADIO_SPLIT']
-            saved_band = key_value_pairs['RADIO_BAND']
-            #gpio_band_pin_144 = key_value_pairs['GPIO_BAND']
-
+            read_DHT(key_value_pairs)
+            read_patterns(key_value_pairs)
+            read_state(key_value_pairs)
+            read_band_pins(key_value_pairs)
+            read_ptt_pins(key_value_pairs)
             #return key_value_pairs
 
     except FileNotFoundError:
