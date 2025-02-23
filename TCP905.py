@@ -88,7 +88,7 @@ Freq_table = { '2M': {
                     'lower_edge':144000000,
                     'upper_edge':148000000,
                         'offset':0,
-                          'band':0b00000000,
+                          'band':0b00000001,
                            'ptt':0b00000001,
                 },
                 '70cm': {
@@ -102,14 +102,14 @@ Freq_table = { '2M': {
                     'lower_edge':351000000,
                     'upper_edge':411000000,
                         'offset':889000000,
-                          'band':0b00000010,
+                          'band':0b00000001,
                            'ptt':0b00000001,
                 },
                 '13cm': {
                     'lower_edge':562000000,
                     'upper_edge':712000000,
                         'offset':1738000000,
-                          'band':0b00000011,
+                          'band':0b00000010,
                            'ptt':0b00000001,
                 },
                 '6cm': {
@@ -123,7 +123,7 @@ Freq_table = { '2M': {
                     'lower_edge':2231000000,
                     'upper_edge':2251000000,
                         'offset':99989000000,
-                          'band':0b00000101,
+                          'band':0b00000010,
                            'ptt':0b00000001,
                 }
             }
@@ -144,7 +144,7 @@ IO_table = {
                  0x01 : {
                       'band_pin':5,  #4,
                    'band_invert':False,
-                       'ptt_pin':16, #17,
+                       'ptt_pin':0,  #16, for 4 relay hat,  #17, for 3 relay hat, 0 for antenna only and no PTT
                     'ptt_invert':False,
                  },
                  0x02 : {
@@ -759,8 +759,9 @@ class BandDecoder(OutputHandler):
 
 
     def dump(self):
+        print("Dump for message 0x"+format(self.payload_ID,"04x")+"  Len:", format(self.payload_len))
         self.hexdump(self.payload_copy)
-        print("(dump) Length:", self.payload_len)
+        #print("(dump) Length:", self.payload_len)
 
 
     def heartbeat(self):
@@ -773,7 +774,7 @@ class BandDecoder(OutputHandler):
 
 
     def case_default(self):
-        #hexdump(payload_copy)
+        self.hexdump(self.payload_copy)
         __payload_len = len(self.payload_copy)
         print("(case_default) Unknown message,ID:0x"+format(self.payload_ID,'04x')+"  Length:", __payload_len)
         return "no match found"
@@ -814,8 +815,10 @@ class Message_handler(BandDecoder):
             case 0x0000: self.unhandled(),  # 0x00 00 - 260 bytes  2nd message at startup
             case 0x0001: self.unhandled(),  # 0x00 01 - 264 bytes in DV mode next to 04 packets spectrum likely
             case 0x0002: self.unhandled(),  # 0x00 02 - 520 bytes on 2M SSB
+            case 0x0108: self.dump(),       # 0x01 00 - 48 bytes on 1296 USB-D split.  Appears to have freqency info
             case 0x0401: self.unhandled(),  # 0x04 01 - 268 byte in DV mode, was all zeros
             case 0x0403: self.unhandled(),  # 0x04 03 - 780 byte in DV mode, was all zeros
+            case 0x0800: self.dump(),       # 0x08 00 - 440 byte was on 2M FM restarting after failure.  Could be a shutdown msg
             case 0x0801: self.mode(),       # 0x08 01 - 272 byte payload, show up on mode change around DV mode has freq, mode, filt all 
             case 0x0802: self.dump(),       # 0x08 02 - 528 byte was on 2M CW
             case 0x0803: self.unhandled(),  # 0x08 03 - 784 byte spectrum       on 2M and other bands SSB
@@ -1130,7 +1133,7 @@ def tcp_sniffer(args):
 
         if (1): #not tcpdump_running:
             # This one filters out more, no spectrum stuff
-            tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','dst','port','50004','and','tcp','and','greater','229']   #(tcp and port 50004 and greater 229)']
+            tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','dst','port','50004','and','tcp','and','greater','229','or','arp']
             # This one includes the other direction which includes spectrum stuff, especially 0xe801.
             #tcpdump_command = ['sudo','tcpdump','-n','-l','-v','-i','eth0','-A','-x','port','50004','and','tcp','and','greater','229']
             p = sub.Popen(tcpdump_command, stdout=sub.PIPE, text=True)  #, stderr=sub.PIPE)
