@@ -88,7 +88,7 @@ Freq_table = { '2M': {
                     'lower_edge':144000000,
                     'upper_edge':148000000,
                         'offset':0,
-                          'band':0b00000001,
+                          'band':0b00000000,
                            'ptt':0b00000001,
                 },
                 '70cm': {
@@ -102,14 +102,14 @@ Freq_table = { '2M': {
                     'lower_edge':351000000,
                     'upper_edge':411000000,
                         'offset':889000000,
-                          'band':0b00000001,
+                          'band':0b00000010,
                            'ptt':0b00000001,
                 },
                 '13cm': {
                     'lower_edge':562000000,
                     'upper_edge':712000000,
                         'offset':1738000000,
-                          'band':0b00000010,
+                          'band':0b00000011,
                            'ptt':0b00000001,
                 },
                 '6cm': {
@@ -123,7 +123,7 @@ Freq_table = { '2M': {
                     'lower_edge':2231000000,
                     'upper_edge':2251000000,
                         'offset':99989000000,
-                          'band':0b00000010,
+                          'band':0b00000101,
                            'ptt':0b00000001,
                 }
             }
@@ -752,11 +752,7 @@ class BandDecoder(OutputHandler):
         print("(Tx_on) Transmitting... - sometimes not")
         self.hexdump(self.payload_copy)
         print("(TX_on) Length:", self.payload_len)
-
-
-    def temperature_log(self):
-        self.p_status("Temps")
-
+        
 
     def dump(self):
         print("Dump for message 0x"+format(self.payload_ID,"04x")+"  Len:", format(self.payload_len))
@@ -839,12 +835,14 @@ class Message_handler(BandDecoder):
             case 0x1c00: self.unhandled(),  # 0x1c 00 - 0x23 bytes NMEA has oocasional $GPGGA, slows or stops when squelch is open on good signal
             case 0x1c01: self.unhandled(),  # 0x1c 01 - 292 bytes was on 23cm FM
             case 0x1c03: self.unhandled(),  # 0x1c 03 - 804 bytes was on 2M CW
+            case 0x2000: self.unhandled(),  # 0x20 00 - 40 bytes random data, was on 2.3G USB
             case 0x2001: self.unhandled(),  # 0x20 01 - 296 bytes was on 23cm FM all 0s
             case 0x2002: self.unhandled(),  # 0x20 02 - 552 bytes was on 2N CW
             case 0x2003: self.unhandled(),  # 0x20 03 - 808 bytes was on 2N CW
             case 0x2400: self.unhandled(),  # 0x24 00 - 88 bytes NMEA data, slow intermittent
             case 0x2401: self.mode(),       # 0x24 01 - 300 bytes  get on filter change.  Has freq, mode, filt etc
             case 0x2403: self.dump(),       # 0x24 03 - 812 bytes on 2M SSB
+            case 0x2800: self.unhandled(),  # 0x28 00 - 48 bytes random data  was in 2.3G FM
             case 0x2801: self.mode(),       # 0x28 01 - 304 bytes  get on filter change in SSB mode, mode changes to RTTY,  has freq, mode and all.
             case 0x2802: self.dump(),       # 0x28 02 - 560 bytes  on 2M SSB
             case 0x2803: self.unhandled(),  # 0x28 03 - 816 bytes  was n 5G FM doing PTT 
@@ -852,6 +850,7 @@ class Message_handler(BandDecoder):
             # this usually has good data but on 2M and 23cm FM at least once it was all zeros
             case 0x2c01: self.mode(),self.frequency(), # 0x2c 01 - 308 bytes get on mode change, has frequency data in it both vfos
             case 0x2c03: self.unhandled()   # 0x2c 03 - ?? bytes was in 2M FM got invalid Mode Filt, DataM values
+            case 0x3000: self.unhandled(),  # 0x30 00 - 56 bytes was in 2.3G FM
             case 0x3001: self.unhandled(),  # 0x30 01 - 312 bytes NMEA data
             case 0x3002: self.unhandled(),  # 0x30 02 - 568 bytes was on 2M CW
             case 0x3003: self.unhandled(),  # 0x30 03 - NMEA data
@@ -872,9 +871,11 @@ class Message_handler(BandDecoder):
             case 0x4401: self.unhandled(),  # 0x44 01 - 332 bytes was on 23cm FM
             case 0x4402: self.unhandled(),  # 0x44 02 - 332 bytes was on 2M CW
             case 0x4403: self.unhandled(),  # 0x44 03 - 844 bytes Looks like spectrum data, was in RTTY switched to AM and 23cm to RTTY could be initial screen draw as happens on band change
+            case 0x4800: self.unhandled(),  # 0x48 00 - 80 bytes  Random daa, was on 2.3G USB and 5.7 ATV
             case 0x4801: self.unhandled(),  # 0x48 01 - 336 bytes  FM and DV mode on 2.3G  all 0s
             case 0x4802: self.unhandled(),  # 0x48 02 - 584 bytes  on 2M CW
-            case 0x4803: self.unhandled(),  # 0x48 03 - 848 bytes  Unknkown, was in FM and DV\FM, issued on switch from DV to SSB and back to DV
+            case 0x4803: self.unhandled(),  # 0x48 03 - 848 bytes  Unknkown, was in FM and DV\FM, issued on switch from DV to SSB and back to DV, no freq data
+            case 0x4c00: self.unhandled(),  # 0x4c 00 - 84 bytes random data  was in 2.3G FM
             case 0x4c01: self.unhandled(),  # 0x4c 01 - 356 bytes was in DV/FM all 0s   Spectrum in AM mode  Can visualize teh APRS bursts in the middle of the data range.
                                             #  when spectrum ref is lowered, data becomes 0s and then stops.  Only strong sugs burst packets
             case 0x4c02: self.unhandled(),  # 0x4c 02 - 596 bytes  USB 2.4G  all zero quiet band
@@ -882,10 +883,13 @@ class Message_handler(BandDecoder):
             case 0x5000: self.unhandled(),  # 0x50 00 - 88 bytes NMEA data
             case 0x5001: self.unhandled(),  # 0x50 01 - 344 bytes Showed up in DD mode on 2G, also on 2M SSb a0s
             case 0x5003: self.unhandled(),  # 0x50 03 - 856 bytes 1 time on TX start, lots of 0 ending with NMEA data
-            case 0x5401: self.unhandled(),  # 0x54 01 - 348 bytes NMEA data in DV/FM mode
+            case 0x5400: self.unhandled(),  # 0x54 00 - 92 bytes random data  was in 2.3G FM
+            case 0x5401: self.dump(),       # 0x54 01 - 348 bytes NMEA data in DV/FM mode
             case 0x5402: self.unhandled(),  # 0x54 02 - 604 bytes spectrum likely 70cm FM
+            case 0x5800: self.unhandled(),  # 0x58 00 - 96 bytes random data  was in 2.3G FM
             case 0x5801: self.unhandled()   # 0x58 01 - 352 bytes was in FM on 5GHz and 2M jsut spectrum or similar
             case 0x5802: self.unhandled(),  # 0x58 02 - 608 bytes was in FM and SSB spectrum likely
+            case 0x5c00: self.unhandled(),  # 0x5c 00 - 100 bytes was in 2.3G FM
             case 0x5c01: self.unhandled(),  # 0x5c 01 - 356 bytes was in DV/FM all 0s
             case 0x5c02: self.unhandled(),  # 0x5c 02 - 612 bytes in AM mode, looks like spectrum  also  on 70cm FM
             case 0x6000: self.unhandled(),  # 0x60 00 - 104 bytes NMEA data
@@ -901,7 +905,7 @@ class Message_handler(BandDecoder):
             case 0x6c01: self.unhandled(),  # 0x6c 01 - 372 bytes was on 23cm FM
             case 0x7000: self.unhandled(),  # 0x70 00 - 120 bytes NMEA on RX, 0s on TX
             case 0x7001: self.unhandled(),  # 0x70 01 - 376 bytes Was on 23cm FM
-            case 0x7400: self.dump(),       # 0x74 00 - 124 bytes ??
+            case 0x7400: self.unhandled(),  # 0x74 00 - 124 bytes random, was on 2.4g FM
             case 0x7401: self.unhandled(),  # 0x74 01 - 380 bytes All 0s
             case 0x7402: self.unhandled(),  # 0x74 02 - 636 bytes On 2M CW
             case 0x7800: self.unhandled(),  # 0x78 00 - 128 bytes NMEA data 
@@ -911,13 +915,13 @@ class Message_handler(BandDecoder):
             case 0x8000: self.unhandled(),  # 0x80 00 - NMEA data
             case 0x8001: self.unhandled(),  # 0x80 01 - 392 bytes was on 23cm FM
             case 0x8002: self.unhandled(),  # 0x80 02 - 648 bytes was on 70cm changing modes
-            #case 0x84: self.dump(),       # 0x84 xx - ?? bytes ??
+            #case 0x84: self.dump(),        # 0x84 xx - ?? bytes ??
             case 0x8800: self.unhandled(),  # 0x88 00 - 144 bytes mostly 0s
             case 0x8801: self.unhandled(),  # 0x88 01 - 400 bytes was on 23cm FM
             case 0x8c01: self.unhandled(),  # 0x8c 01 - 404 bytes was on 23cm FM all 0s
             case 0x8c02: self.dump(),       # 0x8c 02 - 660 bytes spectrum maybe
             case 0x9001: self.unhandled(),  # 0x90 01 - 408 bytes spectrum on 2.4G
-            case 0x9400: self.temperature_log() #0x?? - ?? bytes shows up periodically, maybe use for timer to log temps
+            case 0x9400: self.unhandled(),  # 0x?? - ?? bytes shows up periodically, maybe use for timer to log temps
             case 0x9401: self.unhandled(),  # 0x94 01 - 412 bytes Looks like spectrum on 2.4G SSB
             case 0x9402: self.unhandled(),  # 0x94 02 - 668 bytes Looks like spectrum
             case 0x9801: self.unhandled(),  # 0x98 01 - 416 bytes on 23cm FM mostly 0s
@@ -929,7 +933,7 @@ class Message_handler(BandDecoder):
             case 0xa400: self.unhandled(),  # 0xa4 00 - 172 bytes shows in DV/FM mode. Looks like GPS data.  Codl just be gps mixed in
             case 0xa401: self.unhandled(),  # 0xa4 01 - 428 bytes shows in DV/FM mode. All 0s
             case 0xa406: self.unhandled(),  # 0xa4 06 - 1448 bytes go in 2M at radio startup - first message maybe has startup stuff we need
-            case 0xa800: self.unhandled(),  # 0xa8 00 - 176 bytes 2.4G all zeros no signal
+            case 0xa800: self.dump(),  # 0xa8 00 - 176 bytes 2.4G all zeros no signal
             case 0xa801: self.unhandled(),  # 0xa8 01 - 488 and 432 bytes shows in DV/FM when ref level raised and APRS signal and on 2.4G
             case 0xa802: self.unhandled(),  # 0xa8 02 - 688 and 432 bytes shows in DV/FM when ref level r
             case 0xa803: self.frequency(),  # 0xa8 03 - 944 bytes shows in FM afer a radio restart  3rd startup message
@@ -977,7 +981,7 @@ class Message_handler(BandDecoder):
             case 0xe401: self.unhandled(),  # 0xe4 01 - 492 bytes shows when activity on spectrum was in DV
             case 0xe402: self.unhandled(),  # 0xe4 02 - 748 bytes was on 2M CW
             case 0xe800: self.ptt(),        # 0xe8 00 - ?? bytes tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
-            case 0xe801: self.unhandled(),  # 0xe8 01   ?? bytes is spectrum data on RX when enabled 0
+            case 0xe801: self.dump(),       # 0xe8 01   496 bytes is spectrum data on RX when enabled 0
             case 0xe802: self.unhandled(),  # 0xe8 02   752 bytes was on 2.4G FM
             case 0xec00: self.frequency(),  # 0xec 00 - 244 bytes occurs on data-mode (digital mode) change
             case 0xec02: self.unhandled(),  # 0xec 02 - 0x133 bytes filled with zeros and blocks of gps data
@@ -1012,7 +1016,7 @@ class Message_handler(BandDecoder):
         #self.dump()
 
         # most large payloads are spectrum data and we can ignore those.
-        if (self.payload_len < 500 or self.payload_ID == 0xa803): # and self.payload_ID != 0xe801):
+        if (self.payload_len < 360 or self.payload_ID == 0xa803): # and self.payload_ID != 0xe801):
            self.switch(self.payload_ID)
 
         # reset the storage to prevent memory leaks
@@ -1043,81 +1047,82 @@ def read_state(key_value_pairs):
 
     
 def read_patterns(key_value_pairs):
-    band_2M = int(key_value_pairs['BAND_2M'],base=16)
-    ptt_2M = int(key_value_pairs['PTT_2M'],base=16)
+    Freq_table['2M']['band'] = band_2M = int(key_value_pairs['BAND_2M'],base=16)
+    Freq_table['2M']['ptt'] = ptt_2M = int(key_value_pairs['PTT_2M'],base=16)
     print("2M Band pattern:  ", hex(band_2M), "PTT:", hex(ptt_2M))
     
-    band_70cm = int(key_value_pairs['BAND_70cm'],base=16)
-    ptt_70cm = int(key_value_pairs['PTT_70cm'],base=16)
+    Freq_table['70cm']['band'] = band_70cm = int(key_value_pairs['BAND_70cm'],base=16)
+    Freq_table['70cm']['ptt'] =ptt_70cm = int(key_value_pairs['PTT_70cm'],base=16)
     print("70cm Band pattern:", hex(band_70cm), "PTT:", hex(ptt_70cm))
     
-    band_23cm = int(key_value_pairs['BAND_23cm'],base=16)
-    ptt_23cm = int(key_value_pairs['PTT_23cm'],base=16)
+    Freq_table['23cm']['band'] = band_23cm = int(key_value_pairs['BAND_23cm'],base=16)
+    Freq_table['23cm']['ptt'] =ptt_23cm = int(key_value_pairs['PTT_23cm'],base=16)
     print("23cm Band pattern:", hex(band_23cm), "PTT:", hex(ptt_23cm))
     
-    band_13cm = int(key_value_pairs['BAND_13cm'],base=16)
-    ptt_13cm = int(key_value_pairs['PTT_13cm'],base=16)
+    Freq_table['13cm']['band'] = band_13cm = int(key_value_pairs['BAND_13cm'],base=16)
+    Freq_table['13cm']['ptt'] =ptt_13cm = int(key_value_pairs['PTT_13cm'],base=16)
     print("13cm Band pattern:", hex(band_13cm), "PTT:", hex(ptt_13cm))
     
-    band_6cm = int(key_value_pairs['BAND_6cm'],base=16)
-    ptt_6cm = int(key_value_pairs['PTT_6cm'],base=16)
+    Freq_table['6cm']['band'] = band_6cm = int(key_value_pairs['BAND_6cm'],base=16)
+    Freq_table['6cm']['ptt'] =ptt_6cm = int(key_value_pairs['PTT_6cm'],base=16)
     print("6cm Band pattern: ", hex(band_6cm), "PTT:", hex(ptt_6cm))
     
-    band_3cm = int(key_value_pairs['BAND_3cm'],base=16)
-    ptt_3cm = int(key_value_pairs['PTT_3cm'],base=16)
+    Freq_table['3cm']['band'] = band_3cm = int(key_value_pairs['BAND_3cm'],base=16)
+    Freq_table['3cm']['ptt'] =ptt_3cm = int(key_value_pairs['PTT_3cm'],base=16)
     print("3cm Band pattern: ", hex(band_3cm), "PTT:", hex(ptt_3cm))
 
 
 def read_band_pins(key_value_pairs):    
-    gpio_band_0_pin = int(key_value_pairs['GPIO_BAND_0_PIN'])
-    gpio_band_0_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_0_PIN_INVERT'])
+    IO_table[0x01]['band_pin'] = gpio_band_0_pin = int(key_value_pairs['GPIO_BAND_0_PIN'])
+    IO_table[0x01]['band_invert'] = gpio_band_0_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_0_PIN_INVERT'])
     print("Band Pin 0: ", gpio_band_0_pin, " Invert:", gpio_band_0_pin_invert)
 
-    gpio_band_1_pin = int(key_value_pairs['GPIO_BAND_1_PIN'])
-    gpio_band_1_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_1_PIN_INVERT'])
+    IO_table[0x02]['band_pin'] = gpio_band_1_pin = int(key_value_pairs['GPIO_BAND_1_PIN'])
+    IO_table[0x02]['band_invert'] = gpio_band_1_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_1_PIN_INVERT'])
     print("Band Pin 1: ", gpio_band_1_pin, " Invert:", gpio_band_1_pin_invert)
     
-    gpio_band_2_pin = int(key_value_pairs['GPIO_BAND_2_PIN'])
-    gpio_band_2_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_2_PIN_INVERT'])
+    IO_table[0x04]['band_pin'] = gpio_band_2_pin = int(key_value_pairs['GPIO_BAND_2_PIN'])
+    IO_table[0x04]['band_invert'] = gpio_band_2_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_2_PIN_INVERT'])
     print("Band Pin 2: ", gpio_band_2_pin, " Invert:", gpio_band_2_pin_invert)
     
-    gpio_band_3_pin = int(key_value_pairs['GPIO_BAND_3_PIN'])
-    gpio_band_3_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_3_PIN_INVERT'])
+    IO_table[0x08]['band_pin'] = gpio_band_3_pin = int(key_value_pairs['GPIO_BAND_3_PIN'])
+    IO_table[0x08]['band_invert'] = gpio_band_3_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_3_PIN_INVERT'])
     print("Band Pin 3: ", gpio_band_3_pin, " Invert:", gpio_band_3_pin_invert)
     
-    gpio_band_4_pin = int(key_value_pairs['GPIO_BAND_4_PIN'])
-    gpio_band_4_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_4_PIN_INVERT'])
+    IO_table[0x10]['band_pin'] = gpio_band_4_pin = int(key_value_pairs['GPIO_BAND_4_PIN'])
+    IO_table[0x10]['band_invert'] = gpio_band_4_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_4_PIN_INVERT'])
     print("Band Pin 4: ", gpio_band_4_pin, " Invert:", gpio_band_4_pin_invert)
     
-    gpio_band_5_pin = int(key_value_pairs['GPIO_BAND_5_PIN'])
-    gpio_band_5_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_5_PIN_INVERT'])
+    IO_table[0x20]['band_pin'] = gpio_band_5_pin = int(key_value_pairs['GPIO_BAND_5_PIN'])
+    IO_table[0x20]['band_invert'] = gpio_band_5_pin_invert = str_to_bool(key_value_pairs['GPIO_BAND_5_PIN_INVERT'])
     print("Band Pin 5: ", gpio_band_5_pin, " Invert:", gpio_band_5_pin_invert)
     
     
 def read_ptt_pins(key_value_pairs):    
-    gpio_ptt_0_pin = int(key_value_pairs['GPIO_PTT_0_PIN'])
-    gpio_ptt_0_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_0_PIN_INVERT'])
+    IO_table[0x01]['ptt_pin'] = gpio_ptt_0_pin = int(key_value_pairs['GPIO_PTT_0_PIN'])
+    IO_table[0x01]['ptt_invert'] = gpio_ptt_0_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_0_PIN_INVERT'])
     print("PTT Pin 0: ", gpio_ptt_0_pin, " Invert:", gpio_ptt_0_pin_invert)
     
-    gpio_ptt_1_pin = int(key_value_pairs['GPIO_PTT_1_PIN'])
-    gpio_ptt_1_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
+    IO_table[0x02]['ptt_pin'] = gpio_ptt_1_pin = int(key_value_pairs['GPIO_PTT_1_PIN'])
+    IO_table[0x02]['ptt_invert'] = gpio_ptt_1_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
     print("PTT Pin 1: ", gpio_ptt_1_pin, " Invert:", gpio_ptt_1_pin_invert)
     
-    gpio_ptt_2_pin = int(key_value_pairs['GPIO_PTT_2_PIN'])
-    gpio_ptt_2_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
+    IO_table[0x04]['ptt_pin'] = gpio_ptt_2_pin = int(key_value_pairs['GPIO_PTT_2_PIN'])
+    IO_table[0x04]['ptt_invert'] = gpio_ptt_2_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
     print("PTT Pin 2: ", gpio_ptt_2_pin, " Invert:", gpio_ptt_2_pin_invert)
     
-    gpio_ptt_3_pin = int(key_value_pairs['GPIO_PTT_3_PIN'])
-    gpio_ptt_3_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_3_PIN_INVERT'])
+    IO_table[0x08]['ptt_pin'] = gpio_ptt_3_pin = int(key_value_pairs['GPIO_PTT_3_PIN'])
+    IO_table[0x08]['ptt_invert'] = gpio_ptt_3_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_3_PIN_INVERT'])
     print("PTT Pin 3: ", gpio_ptt_3_pin, " Invert:", gpio_ptt_3_pin_invert)
     
-    gpio_ptt_4_pin = int(key_value_pairs['GPIO_PTT_4_PIN'])
-    gpio_ptt_4_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_4_PIN_INVERT'])
+    IO_table[0x10]['ptt_pin'] = gpio_ptt_4_pin = int(key_value_pairs['GPIO_PTT_4_PIN'])
+    IO_table[0x10]['ptt_invert'] = gpio_ptt_4_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_4_PIN_INVERT'])
     print("PTT Pin 4: ", gpio_ptt_4_pin, " Invert:", gpio_ptt_4_pin_invert)
     
-    gpio_ptt_5_pin = int(key_value_pairs['GPIO_PTT_5_PIN'])
-    gpio_ptt_5_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_5_PIN_INVERT'])
+    IO_table[0x020]['ptt_pin'] = gpio_ptt_5_pin = int(key_value_pairs['GPIO_PTT_5_PIN'])
+    IO_table[0x20]['ptt_invert'] = gpio_ptt_5_pin_invert = str_to_bool(key_value_pairs['GPIO_PTT_5_PIN_INVERT'])
     print("PTT Pin 5: ", gpio_ptt_5_pin, " Invert:", gpio_ptt_5_pin_invert)
+
 
 def read_config():
     global dht11_enable
@@ -1164,7 +1169,7 @@ def read_config():
                 # Add the current key-value pair to the dictionary
                 key_value_pairs[current_key] = current_value
             # Return the dictionary of key-value pairs
-            print(key_value_pairs)
+            #print(key_value_pairs)
             read_DHT(key_value_pairs)
             read_patterns(key_value_pairs)
             read_state(key_value_pairs)
@@ -1284,8 +1289,8 @@ if __name__ == '__main__':
     io = OutputHandler()  # instantiate our classes
     bd = BandDecoder()
     mh = Message_handler()
-    io.gpio_config()
     read_config()
+    io.gpio_config()
     bd.write_temps("Program Startup\n")
     dht = RepeatedTimer(dht11_poll_time, bd.temps)
     #dc = DecoderThread(tcp_sniffer(sys.argv))   # option to run main program in a thread
@@ -1294,4 +1299,3 @@ if __name__ == '__main__':
     io = None
     bd = None
     mh = None
-
