@@ -35,7 +35,7 @@
 #  MA 02110-1301, USA.
 #
 #
-#from scapy.all import *
+
 import os
 import sys
 import numpy as np
@@ -1355,8 +1355,9 @@ if __name__ == '__main__':
     
     # read in config, split and band files
     config_file = os.path.expanduser("~/Decoder905.config")
-    key_value_pairs = read_config(config_file)
-    bd.init_band(key_value_pairs)
+    if os.path.exists(config_file): 
+        key_value_pairs = read_config(config_file)
+        bd.init_band(key_value_pairs)
     
     # Update the temperature log
     bd.write_temps("Program Startup\n")
