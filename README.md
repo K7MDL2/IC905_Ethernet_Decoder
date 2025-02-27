@@ -1,6 +1,7 @@
-| Uses | ![alt text][Pi4B] | ![alt text][Pi3B] | ![alt text][IC-905] | ![alt text][Python311] | ![alt text][Python312] | ![alt text][POE++] | ![alt text][VLAN] | 
+| Uses | ![alt text][Pi5B] | ![alt text][Pi4B] | ![alt text][Pi3B] | ![alt text][IC-905] | ![alt text][Python311] | ![alt text][Python312] | ![alt text][POE++] | ![alt text][VLAN] | 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
+[Pi5B]: https://img.shields.io/badge/-Pi%205B-purple "Pi 5B"
 [Pi4B]: https://img.shields.io/badge/-Pi%204B-green "Pi 4B"
 [Pi3B]: https://img.shields.io/badge/-Pi%203B-orange "Pi 3B"
 [IC-905]: https://img.shields.io/badge/-IC--905-cyan "IC-905"
