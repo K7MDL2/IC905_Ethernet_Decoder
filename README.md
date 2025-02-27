@@ -31,7 +31,7 @@ I only need to switch 1 antenna among the 3 RF outputs so I will use a 28V SP6T 
 
 I used a Pi3B for most of my development. It works for everything except ATV mode where the data rate overwhelms the Pi 3B CPU.  The Pi4B might work but I do not have a free one handy to test with.  The Pi 5B works fine in ATV mode and the install script works on all 3 models.
 
-Here is my Pi 5B in an alumincam case wi the top removed and a 4-relay Pi HAT board isntalled wit the DHT11 temp sensor.  Below the relays are a NVMe SSD board and a Pi 5 fan cooler.
+Here is my Pi 5B in an aluminum case with the top removed and a 4-relay Pi HAT board installed with the DHT11 temp sensor.  Below the relays are an NVMe SSD board and a Pi 5 fan cooler.   It will replace the Pi3B.
 
 ![20250226_185834](https://github.com/user-attachments/assets/b232bc76-10e3-4e41-b0e6-47207f4a69cc)
 
