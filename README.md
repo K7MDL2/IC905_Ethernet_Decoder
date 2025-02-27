@@ -29,6 +29,14 @@ My long term setup uses 2 managed switches. A 16-port TL-SG116E in the shack and
 
 I only need to switch 1 antenna among the 3 RF outputs so I will use a 28V SP6T coax switch with a relay 'Hat" on the Pi which is located in the remote box on the ground.  50ft of rotator cable will run to the coax switch mounted next to the RF Unit to keep the coax jumpers short.
 
+I used a Pi3B for most of my development. It works for everything except ATV mode where the data rate overwhelms the Pi 3B CPU.  The Pi4B might work but I do not have a free one handy to test with.  The Pi 5B works fine in ATV mode and the install script works on all 3 models.
+
+Here is my Pi 5B in an alumincam case wi the top removed and a 4-relay Pi HAT board isntalled wit the DHT11 temp sensor.  Below the relays are a NVMe SSD board and a Pi 5 fan cooler.
+
+![20250226_185834](https://github.com/user-attachments/assets/b232bc76-10e3-4e41-b0e6-47207f4a69cc)
+
+![20250226_190148](https://github.com/user-attachments/assets/af34a859-4d7f-4593-9f1b-9aae571491c5)
+
 Here is a Pi 3B with a BEVRLink 4-channel Relay HAT board that will operate a up to 4 ports on the SP6T coax switch out at the RF unit.  I picked 4 relays so I have the option of using it as a 3-wire BCD + PTT to my Remote BCD Decoder board.  The Pi will be 100ft for the house and there is 50ft more to the RF Unit.  The blue device is a DHT11 temp and humidity sensor, more on that below.
 
 ![20250217_210707](https://github.com/user-attachments/assets/e6b00f2f-1630-45c5-92c6-0372456de6d6)
