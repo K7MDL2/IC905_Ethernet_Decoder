@@ -120,9 +120,9 @@ Freq_table = { '2M': {
                            'ptt':0b00000001,
                 },
                 '3cm': {
-                    'lower_edge':2231000000,
-                    'upper_edge':2251000000,
-                        'offset':99989000000,
+                    'lower_edge':1389000000,    # 10000,000.000 = 1,389,000,000
+                    'upper_edge':1889000000,
+                        'offset':8611000000,    #10.0G - 1.389G = 8,611,000,000
                           'band':0b00000101,
                            'ptt':0b00000001,
                 }
@@ -406,23 +406,23 @@ class BandDecoder(): #OutputHandler):
         #print("2M Band pattern:  ", hex(band_2M), "PTT:", hex(ptt_2M))
         
         Freq_table['70cm']['band'] = band_70cm = int(key_value_pairs['BAND_70cm'],base=16)
-        Freq_table['70cm']['ptt'] =ptt_70cm = int(key_value_pairs['PTT_70cm'],base=16)
+        Freq_table['70cm']['ptt'] = ptt_70cm = int(key_value_pairs['PTT_70cm'],base=16)
         #print("70cm Band pattern:", hex(band_70cm), "PTT:", hex(ptt_70cm))
         
         Freq_table['23cm']['band'] = band_23cm = int(key_value_pairs['BAND_23cm'],base=16)
-        Freq_table['23cm']['ptt'] =ptt_23cm = int(key_value_pairs['PTT_23cm'],base=16)
+        Freq_table['23cm']['ptt'] = ptt_23cm = int(key_value_pairs['PTT_23cm'],base=16)
         #print("23cm Band pattern:", hex(band_23cm), "PTT:", hex(ptt_23cm))
         
         Freq_table['13cm']['band'] = band_13cm = int(key_value_pairs['BAND_13cm'],base=16)
-        Freq_table['13cm']['ptt'] =ptt_13cm = int(key_value_pairs['PTT_13cm'],base=16)
+        Freq_table['13cm']['ptt'] = ptt_13cm = int(key_value_pairs['PTT_13cm'],base=16)
         #print("13cm Band pattern:", hex(band_13cm), "PTT:", hex(ptt_13cm))
         
         Freq_table['6cm']['band'] = band_6cm = int(key_value_pairs['BAND_6cm'],base=16)
-        Freq_table['6cm']['ptt'] =ptt_6cm = int(key_value_pairs['PTT_6cm'],base=16)
+        Freq_table['6cm']['ptt'] = ptt_6cm = int(key_value_pairs['PTT_6cm'],base=16)
         #print("6cm Band pattern: ", hex(band_6cm), "PTT:", hex(ptt_6cm))
         
         Freq_table['3cm']['band'] = band_3cm = int(key_value_pairs['BAND_3cm'],base=16)
-        Freq_table['3cm']['ptt'] =ptt_3cm = int(key_value_pairs['PTT_3cm'],base=16)
+        Freq_table['3cm']['ptt'] = ptt_3cm = int(key_value_pairs['PTT_3cm'],base=16)
         #print("3cm Band pattern: ", hex(band_3cm), "PTT:", hex(ptt_3cm))
 
 
