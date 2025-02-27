@@ -40,7 +40,8 @@ import os
 import sys
 import numpy as np
 import time
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
+from RPi import GPIO
 import subprocess as sub
 from threading import Timer
 from typing import Callable

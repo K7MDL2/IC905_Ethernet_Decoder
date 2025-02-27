@@ -1,10 +1,11 @@
+
 #!/bin/bash
 
 # This sets the pin for a DHT11 temp humidity sensor
 # This script updates /boot/firmware/config/txt to let the OS talk to the sensor
 # after reboot you can use this command to see if the device is connected and working OK.
 #   cat /sys/bus/iio/devices/iio:device0/in_temp_input 
-# 
+#
 DHT11_PIN="15"
 
 echo "Do not run this script as sudo!"
@@ -29,7 +30,15 @@ printf 'Python version is %s'
 python --version
 sudo apt install tcpdump
 sudo apt install python3-numpy
-sudo apt install python3-rpi.gpio
+
+#  search model info for string for '5' in 'Raspberry Pi 5 ....'
+CPUMODEL=$(awk '{print $3}' /proc/device-tree/model)
+echo "CPU Model is " $CPUMODEL
+if [ $CPUMODEL = 5 ]; then
+    sudo apt install python3-rpi-lgpio
+else  # if not a Pi 5 then
+    sudo apt install python3-rpi.gpio
+fi
 
 echo "Updating /boot/firmware/config.txt for DHT11 temp sensor GPIO pin"
 CONFIG="/boot/firmware/config.txt"
