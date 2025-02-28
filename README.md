@@ -25,12 +25,11 @@ My test setup has 3 connections at minimum.
 
 Ports 2 and 3 are in a VLAN so the switch can handle other traffic and not interfere with the 905.
 
-My long term setup, now installed, uses 2 managed switches. A 16-port TL-SG116E in the shack and a smaller 5-port TL-SG105E out in the remote outdoor box where my transverters, amps, and 12/28V power is located.  The 905 VLAN will use 802.1Q VLAN tagging and extends across the 2 switches creating a pipeline through the switches connecting the controller to the POE++ Inserter and RF Unit.  Other devices will be in the shack and on the remote switch but their traffic will be logically isolated.   
-More on the actual VLAN setup at my station are here: https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Network-Hardware
+My long term setup, now installed, uses 2 managed switches. A 16-port TL-SG116E in the shack and a smaller 5-port TL-SG105E out in the remote outdoor box where my transverters, amps, and 12/28V power is located.  The 905 VLAN uses 802.1Q VLAN tagging and extends across the 2 switches creating a pipeline through the switches connecting the controller to the POE++ Inserter and RF Unit.  Other devices will be in the shack and on the remote switch but their traffic will be logically isolated.  More on the actual VLAN setup at my station are here: https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Network-Hardware
 
 I noted several times at power up the RF Unit speed was 100 instead of 1000 as normal.  ATV now works without crashing the radio connection.   Maybe coincidence.  Time will tell.   Separate issue, a Pi 3B cannot handle the ATV data rate.  The Pi 5 does fine, likely a Pi4B will be OK.     
 
-Here is the setup in my outdoor cabinet about 100 cable feet away.   The RF Unit is 50 feet away from the cabinet on a rotating mast with a 600-6000MHz dish.  All 3 RF Unit connectors feed into a coax switch then to the dish.  I am only RX on 144 and 432.  Have other radios with power covering those bands, as I do 1296 but none of them rotate due to HOA restrictions and trees.
+Here is the setup in my outdoor cabinet about 100 cable feet away.   The RF Unit is another 50 cable feet away from the cabinet on a rotating mast with a 600-6000MHz dish.  All 3 RF Unit connectors feed into a coax switch then to the dish.  I am only RX on 144 and 432.  Have other radios with power covering those bands, as I do 1296 but none of them rotate due to HOA restrictions and trees.
 
 ![20250227_155205](https://github.com/user-attachments/assets/dd922517-a93b-45ec-8764-4ff197c8f9e4)
 
@@ -40,7 +39,7 @@ I only need to switch 1 antenna among the 3 RF outputs so I am using a 28V SP6T 
 
 ![20250227_175130](https://github.com/user-attachments/assets/a9d5efac-4b61-437d-bbd9-ea2613bcb4ad)
 
-I still need to run the coax switch control cable from the cabinet.  The coax jumpers and the coax switch are all from my cable stash and and all were selected for lowest loss at 5.7GHz.  They are a bit stiff so not bends were used.  This will come down off the mast in the summer for portable ops.
+There is a capped connector on the bottom of the coax switch box in the picture. I still need to run the coax switch control cable from the cabinet.  The coax jumpers and the coax switch are all from my local parts collection and all were selected for lowest loss at 5.7GHz.  They are a bit stiff so no bends were used.  This will come down off the mast in the summer for portable ops.
 
 ![20250227_175202](https://github.com/user-attachments/assets/2e9b7b3b-a772-4010-bc67-45f0f5e5e445)
 
