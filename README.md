@@ -25,7 +25,10 @@ My test setup has 3 connections at minimum.
 
 Ports 2 and 3 are in a VLAN so the switch can handle other traffic and not interfere with the 905.
 
-My long term setup, now installed, uses 2 managed switches. A 16-port TL-SG116E in the shack and a smaller 5-port TL-SG105E out in the remote outdoor box where my transverters, amps, and 12/28V power is located.  The 905 VLAN will use 802.1Q VLAN tagging and extends across the 2 switches creating a pipeline through the switches connecting the controller to the POE++ Inserter and RF Unit.  Other devices will be in the shack and on the remote switch but their traffic will be logically isolated.   I will have more on the actual VLAN set in the Wiki pages. I noted several times at power up the RF Unit speed was 100 instead of 1000 as normal.  ATV now works without crashing the radio connection.   Maybe coincidence.  Time will tell.   Separate issue, a Pi 3B cannot handle the ATV data rate.  The Pi 5 does fine, likely a Pi4B will be OK.     
+My long term setup, now installed, uses 2 managed switches. A 16-port TL-SG116E in the shack and a smaller 5-port TL-SG105E out in the remote outdoor box where my transverters, amps, and 12/28V power is located.  The 905 VLAN will use 802.1Q VLAN tagging and extends across the 2 switches creating a pipeline through the switches connecting the controller to the POE++ Inserter and RF Unit.  Other devices will be in the shack and on the remote switch but their traffic will be logically isolated.   
+More on the actual VLAN setup at my station are here: https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Network-Hardware
+
+I noted several times at power up the RF Unit speed was 100 instead of 1000 as normal.  ATV now works without crashing the radio connection.   Maybe coincidence.  Time will tell.   Separate issue, a Pi 3B cannot handle the ATV data rate.  The Pi 5 does fine, likely a Pi4B will be OK.     
 
 Here is the setup in my outdoor cabinet about 100 cable feet away.   The RF Unit is 50 feet away from the cabinet on a rotating mast with a 600-6000MHz dish.  All 3 RF Unit connectors feed into a coax switch then to the dish.  I am only RX on 144 and 432.  Have other radios with power covering those bands, as I do 1296 but none of them rotate due to HOA restrictions and trees.
 
