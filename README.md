@@ -37,6 +37,8 @@ I only need to switch 1 antenna among the 3 RF outputs so I am using a 28V SP6T 
 
 ![20250227_175130](https://github.com/user-attachments/assets/a9d5efac-4b61-437d-bbd9-ea2613bcb4ad)
 
+I still need to run the coax switch control cable from the cabinet.  The coax jumpers and the coax switch are all from my cable stash and and all were selected for lowest loss at 5.7GHz.  They are a bit stiff so not bends were used.  This will come down off the mast in the summer for portable ops.
+
 ![20250227_175202](https://github.com/user-attachments/assets/2e9b7b3b-a772-4010-bc67-45f0f5e5e445)
 
 I used a Pi3B for most of my development. It works for everything except ATV mode where the data rate overwhelms the Pi 3B CPU.  The Pi4B might work but I do not have a free one handy to test with.  The Pi 5B works fine in ATV mode and the install script works on all 3 models.  Since I am not using ATV for now I have hte Pi 3B installed outside.  I am testing the Pi 5 on the bench mirrored to radio VLAN on the house side switch.
