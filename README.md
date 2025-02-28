@@ -35,6 +35,10 @@ Here is the setup in my outdoor cabinet about 100 cable feet away.   The RF Unit
 
 I only need to switch 1 antenna among the 3 RF outputs so I am using a 28V SP6T coax switch with a relay 'HAT" on the Pi which is located in the remote cabinet on the ground.  50ft of rotator cable will run to the coax switch mounted next to the RF Unit to keep the coax jumpers short.
 
+![20250227_175130](https://github.com/user-attachments/assets/a9d5efac-4b61-437d-bbd9-ea2613bcb4ad)
+
+![20250227_175202](https://github.com/user-attachments/assets/2e9b7b3b-a772-4010-bc67-45f0f5e5e445)
+
 I used a Pi3B for most of my development. It works for everything except ATV mode where the data rate overwhelms the Pi 3B CPU.  The Pi4B might work but I do not have a free one handy to test with.  The Pi 5B works fine in ATV mode and the install script works on all 3 models.  Since I am not using ATV for now I have hte Pi 3B installed outside.  I am testing the Pi 5 on the bench mirrored to radio VLAN on the house side switch.
 
 Here is my Pi 5B in an aluminum case with the top removed and a 4-relay Pi HAT board installed with the DHT11 temp sensor.  Below the relays are an NVMe SSD board and a Pi 5 fan cooler.   It will replace the Pi3B.
