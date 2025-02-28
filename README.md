@@ -19,7 +19,7 @@ The normal supported RF Unit connection is a point to point ethernet cable using
 
 My test setup has 3 connections at minimum.  
 1. Control head cable to a TP-Link TL-SG116E managed switch port 2.
-2. Switch port 3 to a POE++ (LTPOE++ compatible in my case) 90W POE inserter.
+2. POE++ (LTPOE++ compatible in my case) 90W POE inserter on switch port 3.
 3. POE inserter to the RF unit.  This must be on the RF Unit side of the switch closest to the RF Unit.
 4. Port 16 is mirroring port 2.
 
