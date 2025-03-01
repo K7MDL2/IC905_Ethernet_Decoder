@@ -204,7 +204,7 @@ class OutputHandler:
             print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin", ptt_pin)
             GPIO.setup(band_pin, GPIO.OUT, initial=band_invert)
             GPIO.setup(ptt_pin,  GPIO.OUT, initial=ptt_invert)
-        print("GPIO pin mode setup complete")
+        print("GPIO pin mode setup complete", flush=True)
 
 
     def ptt_io_output(self, band, ptt):
@@ -380,6 +380,8 @@ class BandDecoder(): #OutputHandler):
 
 
     def read_DHT(self, key_value_pairs):
+        global dht11_enable
+        global dht11_poll_time
         #for key in key_value_pairs:
         dht11_enable = self.str_to_bool(key_value_pairs['DHT11_ENABLE'])
         dht11_poll_time = int(key_value_pairs['DHT11_TIME'])
@@ -594,13 +596,15 @@ class BandDecoder(): #OutputHandler):
 
 
     def temps(self):
+        global dht11_enable
+        
         if dht11_enable:
             (temp, hum, temp_F) = self.read_temps()
         else:
             temp = hum= temp_F = 0
         cpu = self.get_cpu_temp()
         tim = dtime.now()
-        temp_str = (tim.strftime("%m/%d/%Y %H:%M:%S%Z")+"  Temperature: %(f)0.1f°F  %(t)0.1f°C  Humidity: %(h)0.1f%%  CPU: %(c)s°C" % {"t": temp, "h": hum, "f": temp_F, 'c': cpu})
+        temp_str = (tim.strftime("%m/%d/%Y %H:%M:%S%Z")+"  Temperature: %(f)0.1f°F  %(t)0.1f°C  Humidity: %(h)0.1f%%  CPU: %(c)s°C  DHT11:%(e)d" % {"t": temp, "h": hum, "f": temp_F, 'c': cpu, 'e': int(dht11_enable)})
         print(self.colored(100,120,255,"(TEMP )"), temp_str, flush=True)
         self.write_temps(temp_str+"\n")
 
@@ -874,7 +878,7 @@ class BandDecoder(): #OutputHandler):
                             self.p_status("SPLtx")
                             io.band_io_output(self.vfoa_band)
                             time.sleep(self.PTT_hang_time)
-                            print("Delay:",self.PTT_hang_time,"sec")
+                            print("Delay:",self.PTT_hang_time,"sec", flush=True)
                         else:
                             self.p_status(" DUP ")
                         io.ptt_io_output(self.vfoa_band, self.ptt_state)
@@ -894,7 +898,7 @@ class BandDecoder(): #OutputHandler):
                             self.p_status("SplRx")
                             io.ptt_io_output(self.vfoa_band, self.ptt_state)
                             time.sleep(self.PTT_hang_time)
-                            print("Delay:",self.PTT_hang_time,"sec")
+                            print("Delay:",self.PTT_hang_time,"sec", flush=True)
                             io.band_io_output(self.vfoa_band)
                         else:
                             #self.p_status(" DUP ")
@@ -914,7 +918,7 @@ class BandDecoder(): #OutputHandler):
 
 
     def dump(self):
-        print("Dump for message 0x"+format(self.payload_ID,"04x")+"  Len:", format(self.payload_len))
+        print("Dump for message 0x"+format(self.payload_ID,"04x")+"  Len:", format(self.payload_len), flush=True)
         self.hexdump(self.payload_copy)
         #print("(dump) Length:", self.payload_len)
 
@@ -938,7 +942,7 @@ class BandDecoder(): #OutputHandler):
         hr=list(self.bcdDigits(self.payload_copy[0xac]))
         min=list(self.bcdDigits(self.payload_copy[0xad]))
         sec=list(self.bcdDigits(self.payload_copy[0xae]))
-        print("Time: "+mon+"/"+day+"/"+yr+"  "+hr+":"+min+":"+sec)
+        print("Time: "+mon+"/"+day+"/"+yr+"  "+hr+":"+min+":"+sec, flush=True)
 
 
     def unhandled(self):
@@ -1379,7 +1383,9 @@ if __name__ == '__main__':
     
     # Update the temperature log
     bd.write_temps("Program Startup\n")
+    
     dht = RepeatedTimer(dht11_poll_time, bd.temps)
+    print("DHT11 enabled:", dht11_enable, "  DHT11 Poll time:",dht11_poll_time, flush=True)
 
     # Start the main program
     #dc = DecoderThread(tcp_sniffer(sys.argv))   # option to run main program in a thread
