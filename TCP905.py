@@ -385,49 +385,49 @@ class BandDecoder(): #OutputHandler):
         dht11_poll_time = int(key_value_pairs['DHT11_TIME'])
 
 
-    def read_split(self, key_value_pairs):        
+    def read_split(self, key_value_pairs):
         #Initialize split based on last known status
         self.split_status = int(key_value_pairs['RADIO_SPLIT'])
         #print("Read file",self.split_status)
-        
-        
-    def read_band(self, key_value_pairs): 
-        # Initialize the band and VFOs to the last saved values, lost likely will be correct.  
+
+
+    def read_band(self, key_value_pairs):
+        # Initialize the band and VFOs to the last saved values, lost likely will be correct.
         # Alternative is to do nothng and block PTT
         __band_name = key_value_pairs['RADIO_BAND']
         __offset = Freq_table[__band_name]['offset']
         self.vfoa_band = self.vfob_band = self.vfoa_band_split_Tx = __band_name
         self.selected_vfo = self.unselected_vfo = self.selected_vfo_split_Tx = Freq_table[__band_name]['lower_edge'] + __offset +1
         self.ptt_state = 0
-        
-        
+
+
     def read_patterns(self, key_value_pairs):
         Freq_table['2M']['band'] = band_2M = int(key_value_pairs['BAND_2M'],base=16)
         Freq_table['2M']['ptt'] = ptt_2M = int(key_value_pairs['PTT_2M'],base=16)
         #print("2M Band pattern:  ", hex(band_2M), "PTT:", hex(ptt_2M))
-        
+
         Freq_table['70cm']['band'] = band_70cm = int(key_value_pairs['BAND_70cm'],base=16)
         Freq_table['70cm']['ptt'] = ptt_70cm = int(key_value_pairs['PTT_70cm'],base=16)
         #print("70cm Band pattern:", hex(band_70cm), "PTT:", hex(ptt_70cm))
-        
+
         Freq_table['23cm']['band'] = band_23cm = int(key_value_pairs['BAND_23cm'],base=16)
         Freq_table['23cm']['ptt'] = ptt_23cm = int(key_value_pairs['PTT_23cm'],base=16)
         #print("23cm Band pattern:", hex(band_23cm), "PTT:", hex(ptt_23cm))
-        
+
         Freq_table['13cm']['band'] = band_13cm = int(key_value_pairs['BAND_13cm'],base=16)
         Freq_table['13cm']['ptt'] = ptt_13cm = int(key_value_pairs['PTT_13cm'],base=16)
         #print("13cm Band pattern:", hex(band_13cm), "PTT:", hex(ptt_13cm))
-        
+
         Freq_table['6cm']['band'] = band_6cm = int(key_value_pairs['BAND_6cm'],base=16)
         Freq_table['6cm']['ptt'] = ptt_6cm = int(key_value_pairs['PTT_6cm'],base=16)
         #print("6cm Band pattern: ", hex(band_6cm), "PTT:", hex(ptt_6cm))
-        
+
         Freq_table['3cm']['band'] = band_3cm = int(key_value_pairs['BAND_3cm'],base=16)
         Freq_table['3cm']['ptt'] = ptt_3cm = int(key_value_pairs['PTT_3cm'],base=16)
         #print("3cm Band pattern: ", hex(band_3cm), "PTT:", hex(ptt_3cm))
 
 
-    def read_band_pins(self, key_value_pairs):    
+    def read_band_pins(self, key_value_pairs):
         IO_table[0x01]['band_pin'] = gpio_band_0_pin = int(key_value_pairs['GPIO_BAND_0_PIN'])
         IO_table[0x01]['band_invert'] = gpio_band_0_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_0_PIN_INVERT'])
         #print("Band Pin 0: ", gpio_band_0_pin, " Invert:", gpio_band_0_pin_invert)
@@ -435,29 +435,29 @@ class BandDecoder(): #OutputHandler):
         IO_table[0x02]['band_pin'] = gpio_band_1_pin = int(key_value_pairs['GPIO_BAND_1_PIN'])
         IO_table[0x02]['band_invert'] = gpio_band_1_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_1_PIN_INVERT'])
         #print("Band Pin 1: ", gpio_band_1_pin, " Invert:", gpio_band_1_pin_invert)
-        
+
         IO_table[0x04]['band_pin'] = gpio_band_2_pin = int(key_value_pairs['GPIO_BAND_2_PIN'])
         IO_table[0x04]['band_invert'] = gpio_band_2_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_2_PIN_INVERT'])
         #print("Band Pin 2: ", gpio_band_2_pin, " Invert:", gpio_band_2_pin_invert)
-        
+
         IO_table[0x08]['band_pin'] = gpio_band_3_pin = int(key_value_pairs['GPIO_BAND_3_PIN'])
         IO_table[0x08]['band_invert'] = gpio_band_3_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_3_PIN_INVERT'])
         #print("Band Pin 3: ", gpio_band_3_pin, " Invert:", gpio_band_3_pin_invert)
-        
+
         IO_table[0x10]['band_pin'] = gpio_band_4_pin = int(key_value_pairs['GPIO_BAND_4_PIN'])
         IO_table[0x10]['band_invert'] = gpio_band_4_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_4_PIN_INVERT'])
         #print("Band Pin 4: ", gpio_band_4_pin, " Invert:", gpio_band_4_pin_invert)
-        
+
         IO_table[0x20]['band_pin'] = gpio_band_5_pin = int(key_value_pairs['GPIO_BAND_5_PIN'])
         IO_table[0x20]['band_invert'] = gpio_band_5_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_5_PIN_INVERT'])
         #print("Band Pin 5: ", gpio_band_5_pin, " Invert:", gpio_band_5_pin_invert)
-        
-        
-    def read_ptt_pins(self, key_value_pairs):    
+
+
+    def read_ptt_pins(self, key_value_pairs):
         IO_table[0x01]['ptt_pin'] = gpio_ptt_0_pin = int(key_value_pairs['GPIO_PTT_0_PIN'])
         IO_table[0x01]['ptt_invert'] = gpio_ptt_0_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_0_PIN_INVERT'])
         #print("PTT Pin 0: ", gpio_ptt_0_pin, " Invert:", gpio_ptt_0_pin_invert)
-        
+
         IO_table[0x02]['ptt_pin'] = gpio_ptt_1_pin = int(key_value_pairs['GPIO_PTT_1_PIN'])
         IO_table[0x02]['ptt_invert'] = gpio_ptt_1_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
         #print("PTT Pin 1: ", gpio_ptt_1_pin, " Invert:", gpio_ptt_1_pin_invert)
@@ -465,24 +465,25 @@ class BandDecoder(): #OutputHandler):
         IO_table[0x04]['ptt_pin'] = gpio_ptt_2_pin = int(key_value_pairs['GPIO_PTT_2_PIN'])
         IO_table[0x04]['ptt_invert'] = gpio_ptt_2_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
         #print("PTT Pin 2: ", gpio_ptt_2_pin, " Invert:", gpio_ptt_2_pin_invert)
-        
+
         IO_table[0x08]['ptt_pin'] = gpio_ptt_3_pin = int(key_value_pairs['GPIO_PTT_3_PIN'])
         IO_table[0x08]['ptt_invert'] = gpio_ptt_3_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_3_PIN_INVERT'])
         #print("PTT Pin 3: ", gpio_ptt_3_pin, " Invert:", gpio_ptt_3_pin_invert)
-        
+
         IO_table[0x10]['ptt_pin'] = gpio_ptt_4_pin = int(key_value_pairs['GPIO_PTT_4_PIN'])
         IO_table[0x10]['ptt_invert'] = gpio_ptt_4_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_4_PIN_INVERT'])
         #print("PTT Pin 4: ", gpio_ptt_4_pin, " Invert:", gpio_ptt_4_pin_invert)
-        
+
         IO_table[0x020]['ptt_pin'] = gpio_ptt_5_pin = int(key_value_pairs['GPIO_PTT_5_PIN'])
         IO_table[0x20]['ptt_invert'] = gpio_ptt_5_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_5_PIN_INVERT'])
         #print("PTT Pin 5: ", gpio_ptt_5_pin, " Invert:", gpio_ptt_5_pin_invert)
 
-    def init_band(self, key_value_pairs):        
+    def init_band(self, key_value_pairs):
         self.read_DHT(key_value_pairs)
         self.read_patterns(key_value_pairs)
         self.read_band_pins(key_value_pairs)
         self.read_ptt_pins(key_value_pairs)
+        io.gpio_config()
         self.vfoa_band = self.frequency()
         self.ptt()
 
@@ -721,7 +722,7 @@ class BandDecoder(): #OutputHandler):
 
         if self.check_msg_valid():
             return
-        
+
         # Duplex used split status byte for VFO swap, just has vfoB set different with offset
         # split is updated in message ID 0xD4.  Here we can also pick it up and not wait for 
         # someone to press the split button to generate the d4 event.
@@ -741,7 +742,7 @@ class BandDecoder(): #OutputHandler):
             self.split_status  = self.payload_copy[0x001b]
             # collect premp and atten via other messages.
 
-        if (self.payload_ID != 0x0000):        
+        if (self.payload_ID != 0x0000):
             self.modeA  = self.payload_copy[vfoa+4]
             self.filter = self.payload_copy[vfoa+5]+1
             self.datamode = self.payload_copy[vfoa+6]
@@ -847,7 +848,7 @@ class BandDecoder(): #OutputHandler):
         # watch for PTT value changes
         if (self.vfoa_band != ""):   # block PTT until we know what band we are on
             #print("PTT called")
-            
+
             if self.payload_ID != 0x0000:
                 if self.frequency_init == 0:
                     self.frequency()
@@ -856,7 +857,7 @@ class BandDecoder(): #OutputHandler):
             else:
                 self.ptt_state = 0
                 #self.__ptt_state_last = 255
-            
+
             if (self.ptt_state != self.__ptt_state_last):
                 #print("PTT state =", self.ptt_state)
                 if (self.ptt_state == 1):  # do not TX if the band is still unknown (such as at startup)
@@ -867,7 +868,7 @@ class BandDecoder(): #OutputHandler):
                         self.selected_vfo = self.unselected_vfo  # during TX assign b to a
                         self.vfoa_band = self.vfob_band
                         #print("PTT TX1 VFO A Band = ", self.vfoa_band, "VFO B Band = ", self.vfob_band,  " ptt_state is TX ", self.ptt_state)
-                        
+
                         # skip the band switch and delay if on the same band
                         if (self.vfoa_band != self.vfoa_band_split_Tx):
                             self.p_status("SPLtx")
@@ -887,7 +888,7 @@ class BandDecoder(): #OutputHandler):
                         self.vfoa_band = self.vfoa_band_split_Tx
                         self.selected_vfo = self.selected_vfo_split_Tx
                         #print("PTT-RX1 VFO A Band = ", self.vfoa_band, "VFO B Band = ", self.vfob_band,  " ptt_state is RX ", self.ptt_state)
-                        
+
                         # skip the band switch and delay if on the same band
                         if (self.vfoa_band != self.vfob_band):
                             self.p_status("SplRx")
@@ -910,18 +911,34 @@ class BandDecoder(): #OutputHandler):
         print("(Tx_on) Transmitting... - sometimes not")
         self.hexdump(self.payload_copy)
         print("(TX_on) Length:", self.payload_len)
-        
+
 
     def dump(self):
         print("Dump for message 0x"+format(self.payload_ID,"04x")+"  Len:", format(self.payload_len))
         self.hexdump(self.payload_copy)
         #print("(dump) Length:", self.payload_len)
 
+    def bcdDigits(self, chars):
+        for char in chars:
+            char = ord(char)
+            for val in (char >> 4, char & 0xF):
+                if val == 0xF:
+                    return
+                yield val
 
-    def heartbeat(self):
+
+    # Bytes 0xA9=day 0xAA=Month 0xAB=2-digit year 0xAC=UTC_Hr 0xAD=Min 0xAE=Sec
+    def time_sync(self):
         self.hexdump(self.payload_copy)
-        #print("heartbeat", self.payload_copy)
-        print("(heartbeat) Length:", self.payload_len)
+        #print("time_sync", self.payload_copy)
+        print("(time) Length:", self.payload_len)
+        day=list(self.bcdDigits(self.payload_copy[0xa9]))
+        mon=list(self.bcdDigits(self.payload_copy[0xaa]))
+        yr=list(self.bcdDigits(self.payload_copy[0xab]))
+        hr=list(self.bcdDigits(self.payload_copy[0xac]))
+        min=list(self.bcdDigits(self.payload_copy[0xad]))
+        sec=list(self.bcdDigits(self.payload_copy[0xae]))
+        print("Time: "+mon+"/"+day+"/"+yr+"  "+hr+":"+min+":"+sec)
 
 
     def unhandled(self):
@@ -1090,7 +1107,7 @@ class Message_handler(BandDecoder):
             case 0xa400: bd.unhandled(),  # 0xa4 00 - 172 bytes shows in DV/FM mode. Looks like GPS data.  Codl just be gps mixed in
             case 0xa401: bd.unhandled(),  # 0xa4 01 - 428 bytes shows in DV/FM mode. All 0s
             case 0xa406: bd.unhandled(),  # 0xa4 06 - 1448 bytes go in 2M at radio startup - first message maybe has startup stuff we need
-            case 0xa800: bd.dump(),  # 0xa8 00 - 176 bytes 2.4G all zeros no signal
+            case 0xa800: bd.time_sync(),  # 0xa8 00 - 176 bytes Bytes 0xA9=day xAA=Month xAB=2-digit year xAC=UTC Hr xAD=Min xAE=Sec
             case 0xa801: bd.unhandled(),  # 0xa8 01 - 488 and 432 bytes shows in DV/FM when ref level raised and APRS signal and on 2.4G
             case 0xa802: bd.unhandled(),  # 0xa8 02 - 688 and 432 bytes shows in DV/FM when ref level r
             case 0xa803: bd.frequency(),  # 0xa8 03 - 944 bytes shows in FM after a radio restart  3rd startup message
@@ -1263,7 +1280,7 @@ def tcp_sniffer(args):
         payload = 0
         payload_len = 0
         header_len = 0
-        
+
         while (1):
 
             #tcpdump_running = sub.run(['pgrep','tcpdump'], stdout=sub.PIPE).stdout.decode('utf-8').strip()  # check if tcpdump already running
@@ -1282,7 +1299,7 @@ def tcp_sniffer(args):
                 #line = p.stdout.readline().strip()
                     #print(row)
                     if row.isspace():
-                        print("Empty line") 
+                        print("Empty line")
                     line = row.strip(" \n\r\t()")
                     #print(line)
                     # determine if this is a info line or data line
@@ -1340,30 +1357,30 @@ if __name__ == '__main__':
     print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025")
     tim = dtime.now()
     print("Startup at", tim.strftime("%m/%d/%Y %H:%M:%S%Z"), flush=True)
-    io.gpio_config()
-    
+
     split_file = os.path.expanduser("~/.Decoder905.split")  # saved state for last known split status
-    if not os.path.exists(split_file): 
+    if not os.path.exists(split_file):
         bd.write_split(0)
     radio_split = read_config(split_file)
     bd.read_split(radio_split)
-       
+
     band_file = os.path.expanduser("~/.Decoder905.band")    # last known band value
-    if not os.path.exists(band_file): 
+    if not os.path.exists(band_file):
         bd.write_band("2M")
     radio_band = read_config(band_file)
     bd.read_band(radio_band)
-    
+
     # read in config, split and band files
     config_file = os.path.expanduser("~/Decoder905.config")
-    if os.path.exists(config_file): 
+    if os.path.exists(config_file):
         key_value_pairs = read_config(config_file)
-        bd.init_band(key_value_pairs)
+    
+    bd.init_band(key_value_pairs)
     
     # Update the temperature log
     bd.write_temps("Program Startup\n")
     dht = RepeatedTimer(dht11_poll_time, bd.temps)
-    
+
     # Start the main program
     #dc = DecoderThread(tcp_sniffer(sys.argv))   # option to run main program in a thread
     tcp_sniffer(sys.argv)
