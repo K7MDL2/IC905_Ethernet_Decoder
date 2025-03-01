@@ -69,6 +69,12 @@ sudo chmod +x /usr/local/bin/view_log
 sudo cp $PWD/chk_dht11 /usr/local/bin
 sudo chmod +x /usr/local/bin/chk_dht11
 
+sudo cp $PWD/stop_TCP905 /usr/local/bin
+sudo chmod +x /usr/local/bin/stop_TCP905
+
+sudo cp $PWD/start_TCP905 /usr/local/bin
+sudo chmod +x /usr/local/bin/start_TCP905
+
 cp $PWD/Decoder905.config /home/$USER
 
 sudo loginctl enable-linger $USER
