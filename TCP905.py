@@ -922,27 +922,35 @@ class BandDecoder(): #OutputHandler):
         self.hexdump(self.payload_copy)
         #print("(dump) Length:", self.payload_len)
 
-    def bcdDigits(self, chars):
-        for char in chars:
-            char = ord(char)
-            for val in (char >> 4, char & 0xF):
-                if val == 0xF:
-                    return
-                yield val
 
-
+    def bcd_hex_to_decimal(self, bcd_hex):
+        # Convert the BCD hex string to an integer
+        bcd_int = int(bcd_hex, 16)        
+        # Initialize the decimal string
+        decimal_str = ""
+        # Process each BCD digit
+        while bcd_int > 0:
+            # Extract the last BCD digit (4 bits)
+            bcd_digit = bcd_int & 0xF
+            # Convert the BCD digit to a decimal digit and prepend to the decimal string
+            decimal_str = str(bcd_digit) + decimal_str
+            # Shift right by 4 bits to process the next BCD digit
+            bcd_int >>= 4
+        return decimal_str
+        
+        
     # Bytes 0xA9=day 0xAA=Month 0xAB=2-digit year 0xAC=UTC_Hr 0xAD=Min 0xAE=Sec
     def time_sync(self):
         self.hexdump(self.payload_copy)
         #print("time_sync", self.payload_copy)
         print("(time) Length:", self.payload_len)
-        day=list(self.bcdDigits(self.payload_copy[0xa9]))
-        mon=list(self.bcdDigits(self.payload_copy[0xaa]))
-        yr=list(self.bcdDigits(self.payload_copy[0xab]))
-        hr=list(self.bcdDigits(self.payload_copy[0xac]))
-        min=list(self.bcdDigits(self.payload_copy[0xad]))
-        sec=list(self.bcdDigits(self.payload_copy[0xae]))
-        print("Time: "+mon+"/"+day+"/"+yr+"  "+hr+":"+min+":"+sec, flush=True)
+        tday=self.bcd_hex_to_decimal(str(self.payload_copy[0xa9]))
+        tmon=self.bcd_hex_to_decimal(str(self.payload_copy[0xaa]))
+        tyr=self.bcd_hex_to_decimal(str(self.payload_copy[0xab]))
+        thr=self.bcd_hex_to_decimal(str(self.payload_copy[0xac]))
+        tmin=self.bcd_hex_to_decimal(str(self.payload_copy[0xad]))
+        tsec=self.bcd_hex_to_decimal(str(self.payload_copy[0xae]))
+        print("Date: "+tmon+"/"+tday+"/"+tyr+"  Time: "+thr+":"+tmin+":"+tsec, flush=True)
 
 
     def unhandled(self):
