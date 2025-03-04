@@ -362,7 +362,7 @@ class BandDecoder(): #OutputHandler):
     payload_ID_byte = 0
     payload_Attrib_byte = 0
     frequency_init = 0
-    
+
     def __init__(self):
         self.__offset = 0
         self.__freq_last = 0
@@ -374,7 +374,7 @@ class BandDecoder(): #OutputHandler):
     #--------------------------------------------------------------------
     #  Process config file
     #--------------------------------------------------------------------
-                
+
     def str_to_bool(self, s):
         return {'true': True, 'false': False}.get(s.lower(), False)
 
@@ -463,7 +463,7 @@ class BandDecoder(): #OutputHandler):
         IO_table[0x02]['ptt_pin'] = gpio_ptt_1_pin = int(key_value_pairs['GPIO_PTT_1_PIN'])
         IO_table[0x02]['ptt_invert'] = gpio_ptt_1_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
         #print("PTT Pin 1: ", gpio_ptt_1_pin, " Invert:", gpio_ptt_1_pin_invert)
-        
+
         IO_table[0x04]['ptt_pin'] = gpio_ptt_2_pin = int(key_value_pairs['GPIO_PTT_2_PIN'])
         IO_table[0x04]['ptt_invert'] = gpio_ptt_2_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
         #print("PTT Pin 2: ", gpio_ptt_2_pin, " Invert:", gpio_ptt_2_pin_invert)
@@ -597,7 +597,7 @@ class BandDecoder(): #OutputHandler):
 
     def temps(self):
         global dht11_enable
-        
+
         if dht11_enable:
             (temp, hum, temp_F) = self.read_temps()
         else:
@@ -925,7 +925,7 @@ class BandDecoder(): #OutputHandler):
 
     def bcd_hex_to_decimal(self, bcd_hex):
         # Convert the BCD hex string to an integer
-        bcd_int = int(bcd_hex, 16)        
+        bcd_int = int(bcd_hex, 10)
         # Initialize the decimal string
         decimal_str = ""
         # Process each BCD digit
@@ -936,22 +936,21 @@ class BandDecoder(): #OutputHandler):
             decimal_str = str(bcd_digit) + decimal_str
             # Shift right by 4 bits to process the next BCD digit
             bcd_int >>= 4
-        return decimal_str
-        
-        
+        return decimal_str.zfill(2)
+
+
     # Bytes 0xA9=day 0xAA=Month 0xAB=2-digit year 0xAC=UTC_Hr 0xAD=Min 0xAE=Sec
     def time_sync(self):
-        self.hexdump(self.payload_copy)
+        #self.hexdump(self.payload_copy)
         #print("time_sync", self.payload_copy)
-        print("(time) Length:", self.payload_len)
+        #print("(time) Length:", self.payload_len)
         tday=self.bcd_hex_to_decimal(str(self.payload_copy[0xa9]))
         tmon=self.bcd_hex_to_decimal(str(self.payload_copy[0xaa]))
         tyr=self.bcd_hex_to_decimal(str(self.payload_copy[0xab]))
         thr=self.bcd_hex_to_decimal(str(self.payload_copy[0xac]))
         tmin=self.bcd_hex_to_decimal(str(self.payload_copy[0xad]))
         tsec=self.bcd_hex_to_decimal(str(self.payload_copy[0xae]))
-        print("Date: "+tmon+"/"+tday+"/"+tyr+"  Time: "+thr+":"+tmin+":"+tsec, flush=True)
-
+        #print("Date: %02s/%02s/%02s  Time: %02s:%02s:%02s" % (tmon,tday,tyr,thr,tmin,tsec), flush=True)
 
     def unhandled(self):
         return "unhandled message"
@@ -960,7 +959,7 @@ class BandDecoder(): #OutputHandler):
     def case_default(self):
         self.hexdump(self.payload_copy)
         __payload_len = len(self.payload_copy)
-        print("(case_default) Unknown message,ID:0x"+format(self.payload_ID,'04x')+"  Length:", __payload_len)
+        print("(case_default) Unknown message,ID:0x"+format(self.payload_ID,'04x')+"  Length:", __payload_len, flush=True)
         return "no match found"
 
 
@@ -1010,7 +1009,7 @@ class Message_handler(BandDecoder):
             case 0x0c02: bd.unhandled(),  # 0x0c 02 - ??? byte on 2M FM
             case 0x1001: bd.unhandled(),  # 0x10 01 - 280 byte was on 2M CW
             case 0x1003: bd.unhandled(),  # 0x10 03 - 792 byte spectrum maybe
-            case 0x1401: bd.unhandled(),  # 0x14 01 - 284 byte spectrum maybe
+            case 0x1401: bd.frequency(),  # 0x14 01 - 284 byte  Occurs when switching from 2.4G SSB to lower band.  Get x2801 or 2401 for other modes.
             case 0x1403: bd.unhandled(),  # 0x14 03 - 796 byte unknown data, not freq, lots of them
             case 0x1800: bd.unhandled(),  # 0x18 00 - 32 bytes continuous  unknown data
             # this usually has good data but on 23cm FM at least once it was all zeros
@@ -1196,7 +1195,7 @@ class Message_handler(BandDecoder):
          #   print(bd.payload_len, "\n")
 
         # Turn this print ON to see all message IDs passing through here
-        #print("Switch on 0x"+format(bd.payload_ID,"04x")+"  Len:", format(bd.payload_len))
+        #print("Switch on 0x"+format(bd.payload_ID,"04x")+"  Len:", format(bd.payload_len), flush=True)
 
         #Turn this on to only see hex dumps for any and all packets
         #bd.dump()
@@ -1386,12 +1385,12 @@ if __name__ == '__main__':
     config_file = os.path.expanduser("~/Decoder905.config")
     if os.path.exists(config_file):
         key_value_pairs = read_config(config_file)
-    
+
     bd.init_band(key_value_pairs)
-    
+
     # Update the temperature log
     bd.write_temps("Program Startup\n")
-    
+
     dht = RepeatedTimer(dht11_poll_time, bd.temps)
     print("DHT11 enabled:", dht11_enable, "  DHT11 Poll time:",dht11_poll_time, flush=True)
 
