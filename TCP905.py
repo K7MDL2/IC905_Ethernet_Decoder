@@ -1150,7 +1150,7 @@ class Message_handler(BandDecoder):
             case 0xcc00: bd.unhandled(),  # 0xcc 00 - 212 bytes  was on 23cm FM all 0s mostly
             case 0xcc01: bd.unhandled(),  # 0xcc 01 - 468 bytes  was on 23cm FM all 0s mostly
             case 0xcc02: bd.unhandled(),  # 0xcc 02 - 724 bytes  2M FM  spectrum
-            case 0xd000: bd.unhandled(),  # 0xd0 00 - 216 bytes ???PTT start event???, freq at 0xb8 for current VFO.  Works on simplex, duplex, no split, no VFOb data
+            case 0xd000: bd.frequency(),  # 0xd0 00 - 216 bytes ???PTT start event???, freq at 0xb8 for current VFO.  Works on simplex, duplex, no split, no VFOb data
             case 0xd001: bd.unhandled(),  # 0xd0 01 - 472 bytes 5G DD mode   all 0s
             case 0xd400: bd.case_xD4(),   # 0xd4 00 - 220 bytes get Split msg on d4-00 has frequency but this is short msg
             case 0xd401: bd.unhandled(),  # 0xd4 01 - 476 bytes Mostly zeros, came after a PTT event
@@ -1162,21 +1162,21 @@ class Message_handler(BandDecoder):
             case 0xe000: bd.unhandled(),  # 0xe0 00 - 232 bytes was on 23cm FM
             case 0xe001: bd.unhandled(),  # 0xe0 01 - 488 bytes in FM spectrum on band change to 23cm
             case 0xe002: bd.unhandled(),  # 0xe0 02 - 744 bytes in DV/FM spectgrum+GPS data - 4th startup message
-            case 0xe400: bd.unhandled(),  # 0xe4 00 - 236 bytes was on 23cm FM
+            case 0xe400: bd.dump(),  # 0xe4 00 - 236 bytes was on 23cm FM
             case 0xe401: bd.unhandled(),  # 0xe4 01 - 492 bytes shows when activity on spectrum was in DV
             case 0xe402: bd.unhandled(),  # 0xe4 02 - 748 bytes was on 2M CW
-            case 0xe800: bd.ptt(),        # 0xe8 00 - 240 bytes tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
+            case 0xe800: bd.ptt(),bd.frequency() # 0xe8 00 - 240 bytes tx/rx changover trigger, e801 normal RX or TX state.  PTT is last byte but may be in others also. Byte 0xef is PTT state
             case 0xe801: bd.dump(),       # 0xe8 01   496 bytes is spectrum data on RX when enabled 0
             case 0xe802: bd.unhandled(),  # 0xe8 02   752 bytes was on 2.4G FM
             case 0xec00: bd.frequency(),  # 0xec 00 - 244 bytes occurs on data-mode (digital mode) change
             case 0xec02: bd.unhandled(),  # 0xec 02 - 0x133 bytes filled with zeros and blocks of gps data
             # the 04, 54, 64 f4, fc ID showed up when there was a signal in DV/FM listeing to packet.  Filled with 0s.  WIl lalso show up when a signal is off freq
-            case 0xf000: bd.unhandled(),  # 0xf0 00 - 248 bytes was in DV mode. Looks like spectrum.  had squelch on in FM
+            case 0xf000: bd.frequency(),  # 0xf0 00 - 248 bytes was in DV mode. Looks like spectrum.  had squelch on in FM
             case 0xf001: bd.unhandled(),  # 0xf0 01 - 504 bytes was in DV mode. Looks like spectrum.  had squelch on in FM
             case 0xf002: bd.unhandled(),  # 0xf0 02 - ??bytes was in DV mode.
-            case 0xf400: bd.unhandled(),  # 0xf4 00 - 252 bytes NMEA data shows up when a large signal was on teh spectgrum and the ref line was < 0 which squelces f4 02 in DV mode.
+            case 0xf400: bd.frequency(),       # 0xf4 00 - 252 bytes NMEA data shows up when a large signal was on the spectrum and the ref line was < 0 which squelches f4 02 in DV mode.
             case 0xf402: bd.unhandled(),  # 0xf4 02 - 764 bytes NMEA data at end, looks like spectrum in DV mode.  Stops when ref line <0
-            case 0xf800: bd.unhandled(),  # 0xf8 00 - 255 bytes shows up periodically in middle of TX streams and other times
+            case 0xf800: bd.frequency(),       # 0xf8 00 - 255 bytes shows up periodically in middle of TX streams and other times
             case 0xf801: bd.unhandled(),  # 0xf8 01 - 512 bytes was on 2M CW
             case 0xfc00: bd.unhandled(),  # 0xfc 00 - 260 bytes Looks like spectrum/NMEA data.  Saw in many palces, during TX, in FM to SSB transition, DV/FM            
             case _: bd.case_default()     # anything we have not seen yet comes to here
@@ -1201,7 +1201,7 @@ class Message_handler(BandDecoder):
         #bd.dump()
 
         # most large payloads are spectrum data and we can ignore those.
-        if (bd.payload_len < 360 or bd.payload_ID == 0xa803): # and bd.payload_ID != 0xe801):
+        if ((bd.payload_len > 170 and bd.payload_len < 320) or bd.payload_ID == 0xa803): # and bd.payload_ID != 0xe801):
            self.switch(bd.payload_ID)
 
         # reset the storage to prevent memory leaks
