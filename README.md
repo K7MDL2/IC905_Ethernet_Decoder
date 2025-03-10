@@ -13,6 +13,8 @@
 
 This project is supporting efforts to understand and utilize the Icom IC-905 Controller to RF Unit ethernet messages to perform band decoder functions. The main goal is to extract PTT events and current RX/TX frequency from the ethernet cable physically close to the RF unit eliminating long control cable runs to tower mounted units to operate relays for antenna switching and amplifier control.  It also frees up the USB port for a local computer connection for logging and digital mode applications.
 
+For a very similar LAN side network solution that will work with the 905 and other CI-V radios (currently the 905, 9700 and 705) see  https://github.com/K7MDL2/CI-V_Serial_Band_Decoder.   It uses wfView virtual serial port as a LAN to serial bridge.  Run wfView and the program on a Pi4 or Pi5.
+
 This is an undocumented protocol so Icom could change it in future firmware updates rendering these progams useless, be warned.
 
 The normal supported RF Unit connection is a point to point ethernet cable using the RF Unit ethernet port.  There is another ethernet port for normal network control.
