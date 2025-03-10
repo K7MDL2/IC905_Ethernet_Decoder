@@ -10,7 +10,7 @@ Alias=Decoder905.service
 Type=idle
 ExecStart=/usr/bin/python3 /usr/local/bin/TCP905.py
 StandardOutput=append:Decoder905.log
-StandardError=file:Decoder.err 
+StandardError=file:Decoder905.err 
 Restart=always
 RestartSec=1
 
