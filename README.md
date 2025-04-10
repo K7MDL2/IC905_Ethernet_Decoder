@@ -13,9 +13,9 @@
 
 This project is supporting efforts to understand and utilize the Icom IC-905 Controller to RF Unit ethernet messages to perform band decoder functions. The main goal is to extract PTT events and current RX/TX frequency from the ethernet cable physically close to the RF unit eliminating long control cable runs to tower mounted units to operate relays for antenna switching and amplifier control.  It also frees up the USB port for a local computer connection for logging and digital mode applications.
 
-For a very similar LAN side network solution that will work with the 905 and other CI-V radios (currently the 905, 9700 and 705) see  https://github.com/K7MDL2/CI-V_Serial_Band_Decoder.   It uses wfView virtual serial port as a LAN to serial bridge.  Run wfView and the program on a Pi4 or Pi5.
+For a very similar LAN side network solution that will work with the 905 and other CI-V radios (currently the 905, 9700 and 705) see  https://github.com/K7MDL2/CI-V_Serial_Band_Decoder.   It uses wfView virtual serial port as a LAN to serial bridge.  Run wfView and the program on a Pi4 or Pi5.  As of April 2025, I got GPIO code for PTT in, BAND OUT and PTT OUT working directly in wfView and have contributed it to the wfView dev team. This will remove the need for the separate CI-V Serial decoder app on a Pi.
 
-This is an undocumented protocol so Icom could change it in future firmware updates rendering these progams useless, be warned.
+The comms between the 905 controller and RF Unit are undocumented so Icom could change it in future firmware updates rendering these progams useless, be warned.  I have been running it on Pi 3 with a coax switch outside for several week now, it has been very reliable.   I run the USB decoder and the Pi5 etherent decoder on my bench and they are stable as well.  The Pi3 cannot handle the data load when the 905 is in ATV mode.  I do not use ATV so no problem for me.
 
 The normal supported RF Unit connection is a point to point ethernet cable using the RF Unit ethernet port.  There is another ethernet port for normal network control.
 
@@ -29,7 +29,7 @@ Ports 2 and 3 are in a VLAN so the switch can handle other traffic and not inter
 
 My long term setup, now installed, uses 2 managed switches. A 16-port TL-SG116E in the shack and a smaller 5-port TL-SG105E out in the remote outdoor box where my transverters, amps, and 12/28V power is located.  The 905 VLAN uses 802.1Q VLAN tagging and extends across the 2 switches creating a pipeline through the switches connecting the controller to the POE++ Inserter and RF Unit.  Other devices will be in the shack and on the remote switch but their traffic will be logically isolated.  More on the actual VLAN setup at my station are here: https://github.com/K7MDL2/IC905_Ethernet_Decoder/wiki/Network-Hardware
 
-I noted several times at power up the RF Unit speed was 100 instead of 1000 as normal.  ATV now works without crashing the radio connection.   Maybe coincidence.  Time will tell.   Separate issue, a Pi 3B cannot handle the ATV data rate.  The Pi 5 does fine, likely a Pi4B will be OK.     
+I noted several times at power up the RF Unit speed was 100 instead of 1000 as normal.  Separate issue, a Pi 3B cannot handle the ATV data rate.  The Pi 5 does fine, likely a Pi4B will be OK.     
 
 Here is the setup in my outdoor cabinet about 100 cable feet away.   The RF Unit is another 50 cable feet away from the cabinet on a rotating mast with a 600-6000MHz dish.  All 3 RF Unit connectors feed into a coax switch then to the dish.  I am only RX on 144 and 432.  Have other radios with power covering those bands, as I do 1296 but none of them rotate due to HOA restrictions and trees.
 
@@ -45,7 +45,7 @@ There is a capped connector on the bottom of the coax switch box in the picture.
 
 ![20250227_175202](https://github.com/user-attachments/assets/2e9b7b3b-a772-4010-bc67-45f0f5e5e445)
 
-I used a Pi3B for most of my development. It works for everything except ATV mode where the data rate overwhelms the Pi 3B CPU.  The Pi4B might work but I do not have a free one handy to test with.  The Pi 5B works fine in ATV mode and the install script works on all 3 models.  Since I am not using ATV for now I have hte Pi 3B installed outside.  I am testing the Pi 5 on the bench mirrored to radio VLAN on the house side switch.
+I used a Pi3B for most of my development. It works for everything except ATV mode where the data rate overwhelms the Pi 3B CPU.  The Pi4B might work but I do not have a free one handy to test with.  The Pi 5B works fine in ATV mode and the install script works on all 3 models.  Since I am not using ATV for now I have the Pi 3B installed outside.  I am testing the Pi 5 on the bench mirrored to radio VLAN on the house side switch.
 
 Here is my Pi 5B in an aluminum case with the top removed and a 4-relay Pi HAT board installed with the DHT11 temp sensor.  Below the relays are an NVMe SSD board and a Pi 5 fan cooler.   It will replace the Pi3B.
 
