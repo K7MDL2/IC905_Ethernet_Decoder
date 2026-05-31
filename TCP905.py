@@ -217,7 +217,7 @@ class OutputHandler:
         print("Initial default GPIO pin mode setup complete, read config file next if it exists.", flush=True)
 
 
-    def ptt_io_output(self, band: str, ptt: int) -> None:
+    def ptt_io_output(self, band: str, ptt: int):
         for __band_name in Freq_table:
             if (__band_name == band):
                 band_pattern = Freq_table[__band_name]['ptt']
@@ -356,10 +356,10 @@ class DecoderThread(object):
 class BandDecoder(): #OutputHandler):
 # We are inheriting from OutputHandler class so we can access its functions
 #   and variables as if they were our own.
-    vfoa_band = ""
-    vfoa_band_split_Tx = ""
-    vfob_band = ""
-    selected_vfo = 0
+    vfoa_band = str("")
+    vfoa_band_split_Tx = str("")
+    vfob_band = str("")
+    selected_vfo = int(0)
     unselected_vfo = 255
     selected_vfo_split_Tx = 0
     split_status = 255
@@ -371,7 +371,7 @@ class BandDecoder(): #OutputHandler):
     datamode = 255
     in_menu = 0
     payload_len = 0
-    payload_copy = ""
+    payload_copy = str("")
     payload_ID = 0
     payload_ID_byte = 0
     payload_Attrib_byte = 0
@@ -389,7 +389,7 @@ class BandDecoder(): #OutputHandler):
     #  Process config file
     #--------------------------------------------------------------------
 
-    def str_to_bool(self, s):
+    def str_to_bool(self, s: str):
         return {'true': True, 'false': False}.get(s.lower(), False)
 
 
@@ -397,7 +397,7 @@ class BandDecoder(): #OutputHandler):
         global dht11_enable
         global dht11_poll_time
         #for key in key_value_pairs:
-        dht11_enable = self.str_to_bool(key_value_pairs['DHT11_ENABLE'])
+        dht11_enable = bool(key_value_pairs['DHT11_ENABLE'])
         dht11_poll_time = int(key_value_pairs['DHT11_TIME'])
 
 
@@ -410,7 +410,7 @@ class BandDecoder(): #OutputHandler):
     def read_band(self, key_value_pairs):
         # Initialize the band and VFOs to the last saved values, lost likely will be correct.
         # Alternative is to do nothng and block PTT
-        __band_name = key_value_pairs['RADIO_BAND']
+        __band_name = str(key_value_pairs['RADIO_BAND'])
         __offset = Freq_table[__band_name]['offset']
         self.vfoa_band = self.vfob_band = self.vfoa_band_split_Tx = __band_name
         self.selected_vfo = self.unselected_vfo = self.selected_vfo_split_Tx = Freq_table[__band_name]['lower_edge'] + __offset +1
@@ -512,7 +512,7 @@ class BandDecoder(): #OutputHandler):
         self.vfoa_band = self.frequency()
         self.ptt()
 
-    def write_split(self, split):
+    def write_split(self, split: int):
         file_path = os.path.expanduser('~/.Decoder905.split')
         try:
             with open(file_path,'w+') as file:
@@ -524,7 +524,7 @@ class BandDecoder(): #OutputHandler):
             print(f"An error occured: {e}")
 
 
-    def write_band(self, band):
+    def write_band(self, band: str):
         file_path = os.path.expanduser('~/.Decoder905.band')
         try:
             with open(file_path,'w+') as file:
@@ -561,7 +561,7 @@ class BandDecoder(): #OutputHandler):
         temp = os.popen("vcgencmd measure_temp").readline()
         return temp.replace("temp=", "").strip()[:-2]
 
-    def write_temps(self, line):   #, file):
+    def write_temps(self, line: str):   #, file):
         file_path = os.path.expanduser('~/Temperatures.log')
         try:
             with open(file_path,'a') as file:
@@ -688,7 +688,7 @@ class BandDecoder(): #OutputHandler):
             self.atten_status = self.payload_copy[0x011d]
             self.preamp_status = self.payload_copy[0x011c]
         self.modeA = self.payload_copy[0x00bc]
-        self.filter = self.payload_copy[0x00bd]+1
+        self.filter = int(self.payload_copy[0x00bd])+1
         self.datamode = self.payload_copy[0x00be]
         self.in_menu = self.payload_copy[0x00d8]
         self.frequency()
@@ -711,7 +711,7 @@ class BandDecoder(): #OutputHandler):
         self.split_status = self.payload_copy[0x001b] # message #0xd400 @ 0x0001
         #self.split_status = self.payload_copy[0x00b3] # message #0xd400 @ 0x0001
         self.modeA = self.payload_copy[0x00bc]
-        self.filter = self.payload_copy[0x00bd]+1
+        self.filter = int(self.payload_copy[0x00bd])+1
         self.datamode = self.payload_copy[0x00be]
         self.in_menu = self.payload_copy[0x00d8]
         self.frequency()
@@ -766,13 +766,13 @@ class BandDecoder(): #OutputHandler):
             # from another message ID that call here
             vfoa = 0x00b8
             vfob = 0x00c4
-            self.split_status  = self.payload_copy[0x001b]
+            self.split_status  = int(self.payload_copy[0x001b])
             # collect premp and atten via other messages.
 
         if (self.payload_ID != 0x0000):
-            self.modeA  = self.payload_copy[vfoa+4]
-            self.filter = self.payload_copy[vfoa+5]+1
-            self.datamode = self.payload_copy[vfoa+6]
+            self.modeA  = int(self.payload_copy[vfoa+4])
+            self.filter = int(self.payload_copy[vfoa+5])+1
+            self.datamode = int(self.payload_copy[vfoa+6])
 
             # Returns the payload hex converted to int.
             # This need to have the band offset applied next
@@ -798,7 +798,7 @@ class BandDecoder(): #OutputHandler):
                     # Found a band match, print out the goods
                     self.__offset = Freq_table[__band_name]['offset']
                     self.selected_vfo = __vfoa + self.__offset
-                    self.vfoa_band = __band_name
+                    self.vfoa_band = (str)__band_name
 
                 if (__vfob >= Freq_table[__band_name]['lower_edge'] and
                     __vfob <= Freq_table[__band_name]['upper_edge'] ):
@@ -857,7 +857,7 @@ class BandDecoder(): #OutputHandler):
 
         self.split_status = self.payload_copy[0x00b3] # message #0xd400 @ 0x0001
         self.modeA  = self.payload_copy[0x00bc]
-        self.filter = self.payload_copy[0x00bd]+1
+        self.filter = int(self.payload_copy[0x00bd])+1
         self.datamode = self.payload_copy[0x00be]
         self.frequency()
 
@@ -873,14 +873,14 @@ class BandDecoder(): #OutputHandler):
             return
 
         # watch for PTT value changes
-        if (self.vfoa_band != ""):   # block PTT until we know what band we are on
+        if (self.vfoa_band != (str) ""):   # block PTT until we know what band we are on
             #print("PTT called")
 
             if self.payload_ID != 0x0000:
                 if self.frequency_init == 0:
                     self.frequency()
                     self.frequency_init = 1
-                self.ptt_state = self.payload_copy[0x00ef]
+                self.ptt_state = int(self.payload_copy[0x00ef])
             else:
                 self.ptt_state = 0
                 #self.__ptt_state_last = 255
@@ -986,7 +986,7 @@ class BandDecoder(): #OutputHandler):
         return "no match found"
 
 
-    def colored(self, r, g, b, text):
+    def colored(self, r: int, g: int, b: int, text: str):
         return f"\033[38;2;{r};{g};{b}m{text}\033[0m"
 
 #
@@ -1009,7 +1009,7 @@ class Message_handler(BandDecoder):
     # Replace any of these with dump() to do a hexdump and help identify what it does.
     # Lower the packet length filter size and you will see many more. Unclear if they need to be looked at.
 
-    def switch(self, ID):
+    def switch(self, ID: int):
         #print("ID:",format(ID,"04x")
         match ID:
             #case 0xYY: dump,  # example of a message routed to hex dump function for investigation
