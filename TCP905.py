@@ -214,7 +214,7 @@ class OutputHandler:
             print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin:", ptt_pin, " ptt_delay:", ptt_delay)
             GPIO.setup(band_pin, GPIO.OUT, initial=band_invert)
             GPIO.setup(ptt_pin,  GPIO.OUT, initial=ptt_invert)            
-        print("Initial deafult GPIO pin mode setup complete, read config file next if it exists.", flush=True)
+        print("Initial default GPIO pin mode setup complete, read config file next if it exists.", flush=True)
 
 
     def ptt_io_output(self, band: str, ptt: int) -> None:
@@ -501,11 +501,14 @@ class BandDecoder(): #OutputHandler):
         #print("PTT Pin 5: ", gpio_ptt_5_pin, " Invert:", gpio_ptt_5_pin_invert, " PTT Pin Delay", gpio_ptt_5_delay)
 
     def init_band(self, key_value_pairs):
+        io.gpio_config()
+        print("Initial default GPIO pin mode setup complete, read config file next if it exists.\n", flush=True)
         self.read_DHT(key_value_pairs)
         self.read_patterns(key_value_pairs)
         self.read_band_pins(key_value_pairs)
         self.read_ptt_pins(key_value_pairs)
         io.gpio_config()
+        print("GPIO pin mode setup from config file.\n", flush=True)
         self.vfoa_band = self.frequency()
         self.ptt()
 
