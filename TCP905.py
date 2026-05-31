@@ -142,8 +142,9 @@ Freq_table = { '2M': {
 
 # The 3 relay HAT I have uses pin CH1=26  CH2=20  CH3=21 (25, , 28, 29 using Wiring Pi numbers on the board
 
-# This is set up for  3-wire BCD Band and 1-wire PTT for the Remote BCD DEcdoer board
-IO_table = {
+# This is set up for  3-wire BCD Band and 1-wire PTT for the Remote BCD Decoder board
+IO_table: dict[int, dict[str, int | bool]] = {
+#IO_table = {
                  0x01 : {
                       'band_pin':5,  #4,
                    'band_invert':False,
@@ -205,18 +206,18 @@ class OutputHandler:
     def gpio_config(self):
         GPIO.setmode(GPIO.BCM)
         for i in IO_table:
-            band_pin    = IO_table[i]['band_pin']
-            band_invert = IO_table[i]['band_invert']
-            ptt_delay = IO_table[i]['ptt_delay']
-            ptt_pin     = IO_table[i]['ptt_pin']
-            ptt_invert  = IO_table[i]['ptt_invert']
-            print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin", ptt_pin, " ptt_delay", ptt_delay)
+            band_pin    = (int)(IO_table[i]['band_pin'])
+            band_invert = (bool)(IO_table[i]['band_invert'])
+            ptt_pin     = (int)(IO_table[i]['ptt_pin'])
+            ptt_invert  = (bool)(IO_table[i]['ptt_invert'])
+            ptt_delay   = (int)(IO_table[i]['ptt_delay'])
+            print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin:", ptt_pin, " ptt_delay:", ptt_delay)
             GPIO.setup(band_pin, GPIO.OUT, initial=band_invert)
             GPIO.setup(ptt_pin,  GPIO.OUT, initial=ptt_invert)            
-        print("GPIO pin mode setup complete", flush=True)
+        print("Initial deafult GPIO pin mode setup complete, read config file next if it exists.", flush=True)
 
 
-    def ptt_io_output(self, band, ptt):
+    def ptt_io_output(self, band: str, ptt: int) -> None:
         for __band_name in Freq_table:
             if (__band_name == band):
                 band_pattern = Freq_table[__band_name]['ptt']
@@ -239,22 +240,22 @@ class OutputHandler:
                     pin_invert = IO_table[__pins]['ptt_invert']
                     io_pin     = IO_table[__pins]['ptt_pin']
                     ptt_delay   = IO_table[__pins]['ptt_delay']
-                    pin_state  = (band_pattern & __pins & ptt)
+                    pin_state  = bool(band_pattern & __pins & ptt)
 
                     pin_state = bool(pin_state)   # convert decimal number to a boolean value
 
                     if pin_invert:
-                        pin_state = pin_state ^ 1 # invert the pin
+                        pin_state = bool(pin_state ^ 1) # invert the pin
                         #print("pin state after inversion:", int(pin_state))
 
-                    print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert, "delay", ptt_delay)
+                    print("index", __pins, "pin state:", pin_state,"on", io_pin, " inverted:", pin_invert, " delay:", ptt_delay)
 
                     time.sleep(ptt_delay/1000) # ptt_delay is in msec units, convert to seconds.
 
                     GPIO.output(io_pin, pin_state)  # set our pin
 
 
-    def band_io_output(self, band):
+    def band_io_output(self, band: str):
         # turn on selected band output
         for __band_name in Freq_table:
             if (__band_name == band):
@@ -269,7 +270,7 @@ class OutputHandler:
                 for __pins in IO_table:
                     pin_invert = IO_table[__pins]['band_invert']
                     io_pin     = IO_table[__pins]['band_pin']
-                    pin_state  = (band_pattern & __pins)
+                    pin_state  = bool(band_pattern & __pins)
 
                     if pin_state:
                         pin_state = 1
@@ -277,7 +278,7 @@ class OutputHandler:
                         pin_state = 0
 
                     if pin_invert:
-                        pin_state = pin_state ^ 1 # invert the pin
+                        pin_state = (bool)(pin_state ^ 1) # invert the pin
                         #print("pin state after inversion:", int(pin_state))
 
                     #print("index", __pins, "pin state:", pin_state,"on",io_pin, "inverted", pin_invert)
@@ -444,59 +445,59 @@ class BandDecoder(): #OutputHandler):
 
     def read_band_pins(self, key_value_pairs):
         IO_table[0x01]['band_pin'] = gpio_band_0_pin = int(key_value_pairs['GPIO_BAND_0_PIN'])
-        IO_table[0x01]['band_invert'] = gpio_band_0_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_0_PIN_INVERT'])
+        IO_table[0x01]['band_invert'] = gpio_band_0_pin_invert = bool(key_value_pairs['GPIO_BAND_0_PIN_INVERT'])
         #print("Band Pin 0: ", gpio_band_0_pin, " Invert:", gpio_band_0_pin_invert)
 
         IO_table[0x02]['band_pin'] = gpio_band_1_pin = int(key_value_pairs['GPIO_BAND_1_PIN'])
-        IO_table[0x02]['band_invert'] = gpio_band_1_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_1_PIN_INVERT'])
+        IO_table[0x02]['band_invert'] = gpio_band_1_pin_invert = bool(key_value_pairs['GPIO_BAND_1_PIN_INVERT'])
         #print("Band Pin 1: ", gpio_band_1_pin, " Invert:", gpio_band_1_pin_invert)
 
         IO_table[0x04]['band_pin'] = gpio_band_2_pin = int(key_value_pairs['GPIO_BAND_2_PIN'])
-        IO_table[0x04]['band_invert'] = gpio_band_2_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_2_PIN_INVERT'])
+        IO_table[0x04]['band_invert'] = gpio_band_2_pin_invert = bool(key_value_pairs['GPIO_BAND_2_PIN_INVERT'])
         #print("Band Pin 2: ", gpio_band_2_pin, " Invert:", gpio_band_2_pin_invert)
 
         IO_table[0x08]['band_pin'] = gpio_band_3_pin = int(key_value_pairs['GPIO_BAND_3_PIN'])
-        IO_table[0x08]['band_invert'] = gpio_band_3_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_3_PIN_INVERT'])
+        IO_table[0x08]['band_invert'] = gpio_band_3_pin_invert = bool(key_value_pairs['GPIO_BAND_3_PIN_INVERT'])
         #print("Band Pin 3: ", gpio_band_3_pin, " Invert:", gpio_band_3_pin_invert)
 
         IO_table[0x10]['band_pin'] = gpio_band_4_pin = int(key_value_pairs['GPIO_BAND_4_PIN'])
-        IO_table[0x10]['band_invert'] = gpio_band_4_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_4_PIN_INVERT'])
+        IO_table[0x10]['band_invert'] = gpio_band_4_pin_invert = bool(key_value_pairs['GPIO_BAND_4_PIN_INVERT'])
         #print("Band Pin 4: ", gpio_band_4_pin, " Invert:", gpio_band_4_pin_invert)
 
         IO_table[0x20]['band_pin'] = gpio_band_5_pin = int(key_value_pairs['GPIO_BAND_5_PIN'])
-        IO_table[0x20]['band_invert'] = gpio_band_5_pin_invert = self.str_to_bool(key_value_pairs['GPIO_BAND_5_PIN_INVERT'])
+        IO_table[0x20]['band_invert'] = gpio_band_5_pin_invert = bool(key_value_pairs['GPIO_BAND_5_PIN_INVERT'])
         #print("Band Pin 5: ", gpio_band_5_pin, " Invert:", gpio_band_5_pin_invert)
 
 
     def read_ptt_pins(self, key_value_pairs):
         IO_table[0x01]['ptt_pin'] = gpio_ptt_0_pin = int(key_value_pairs['GPIO_PTT_0_PIN'])
-        IO_table[0x01]['ptt_invert'] = gpio_ptt_0_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_0_PIN_INVERT'])
-        IO_table[0x01]['ptt_delay'] = gpio_ptt_0_delay = self.str_to_bool(key_value_pairs['GPIO_PTT_0_DELAY'])
+        IO_table[0x01]['ptt_invert'] = gpio_ptt_0_pin_invert = bool(key_value_pairs['GPIO_PTT_0_PIN_INVERT'])
+        IO_table[0x01]['ptt_delay'] = gpio_ptt_0_delay = int(key_value_pairs['GPIO_PTT_0_DELAY'])
         #print("PTT Pin 0: ", gpio_ptt_0_pin, " Invert:", gpio_ptt_0_pin_invert, " PTT Pin Delay", gpio_ptt_0_delay)
 
         IO_table[0x02]['ptt_pin'] = gpio_ptt_1_pin = int(key_value_pairs['GPIO_PTT_1_PIN'])
-        IO_table[0x02]['ptt_invert'] = gpio_ptt_1_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
-        IO_table[0x02]['ptt_delay'] = gpio_ptt_1_delay = self.str_to_bool(key_value_pairs['GPIO_PTT_1_DELAY'])
+        IO_table[0x02]['ptt_invert'] = gpio_ptt_1_pin_invert = bool(key_value_pairs['GPIO_PTT_1_PIN_INVERT'])
+        IO_table[0x02]['ptt_delay'] = gpio_ptt_1_delay = int(key_value_pairs['GPIO_PTT_1_DELAY'])
         #print("PTT Pin 1: ", gpio_ptt_1_pin, " Invert:", gpio_ptt_1_pin_invert, " PTT Pin Delay", gpio_ptt_1_delay)
 
         IO_table[0x04]['ptt_pin'] = gpio_ptt_2_pin = int(key_value_pairs['GPIO_PTT_2_PIN'])
-        IO_table[0x04]['ptt_invert'] = gpio_ptt_2_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
-        IO_table[0x04]['ptt_delay'] = gpio_ptt_2_delay = self.str_to_bool(key_value_pairs['GPIO_PTT_2_DELAY'])
+        IO_table[0x04]['ptt_invert'] = gpio_ptt_2_pin_invert = bool(key_value_pairs['GPIO_PTT_2_PIN_INVERT'])
+        IO_table[0x04]['ptt_delay'] = gpio_ptt_2_delay = int(key_value_pairs['GPIO_PTT_2_DELAY'])
         #print("PTT Pin 2: ", gpio_ptt_2_pin, " Invert:", gpio_ptt_2_pin_invert, " PTT Pin Delay", gpio_ptt_2_delay)
 
         IO_table[0x08]['ptt_pin'] = gpio_ptt_3_pin = int(key_value_pairs['GPIO_PTT_3_PIN'])
-        IO_table[0x08]['ptt_invert'] = gpio_ptt_3_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_3_PIN_INVERT'])
-        IO_table[0x08]['ptt_delay'] = gpio_ptt_3_delay = self.str_to_bool(key_value_pairs['GPIO_PTT_3_DELAY'])
+        IO_table[0x08]['ptt_invert'] = gpio_ptt_3_pin_invert = bool(key_value_pairs['GPIO_PTT_3_PIN_INVERT'])
+        IO_table[0x08]['ptt_delay'] = gpio_ptt_3_delay = int(key_value_pairs['GPIO_PTT_3_DELAY'])
         #print("PTT Pin 3: ", gpio_ptt_3_pin, " Invert:", gpio_ptt_3_pin_invert, " PTT Pin Delay", gpio_ptt_3_delay)
 
         IO_table[0x10]['ptt_pin'] = gpio_ptt_4_pin = int(key_value_pairs['GPIO_PTT_4_PIN'])
-        IO_table[0x10]['ptt_invert'] = gpio_ptt_4_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_4_PIN_INVERT'])
-        IO_table[0x10]['ptt_delay'] = gpio_ptt_4_delay = self.str_to_bool(key_value_pairs['GPIO_PTT_4_DELAY'])
+        IO_table[0x10]['ptt_invert'] = gpio_ptt_4_pin_invert = bool(key_value_pairs['GPIO_PTT_4_PIN_INVERT'])
+        IO_table[0x10]['ptt_delay'] = gpio_ptt_4_delay = int(key_value_pairs['GPIO_PTT_4_DELAY'])
         #print("PTT Pin 4: ", gpio_ptt_4_pin, " Invert:", gpio_ptt_4_pin_invert, " PTT Pin Delay", gpio_ptt_4_delay)
 
         IO_table[0x20]['ptt_pin'] = gpio_ptt_5_pin = int(key_value_pairs['GPIO_PTT_5_PIN'])
-        IO_table[0x20]['ptt_invert'] = gpio_ptt_5_pin_invert = self.str_to_bool(key_value_pairs['GPIO_PTT_5_PIN_INVERT'])
-        IO_table[0x20]['ptt_delay'] = gpio_ptt_5_delay = self.str_to_bool(key_value_pairs['GPIO_PTT_5_DELAY'])
+        IO_table[0x20]['ptt_invert'] = gpio_ptt_5_pin_invert = bool(key_value_pairs['GPIO_PTT_5_PIN_INVERT'])
+        IO_table[0x20]['ptt_delay'] = gpio_ptt_5_delay = int(key_value_pairs['GPIO_PTT_5_DELAY'])
         #print("PTT Pin 5: ", gpio_ptt_5_pin, " Invert:", gpio_ptt_5_pin_invert, " PTT Pin Delay", gpio_ptt_5_delay)
 
     def init_band(self, key_value_pairs):
