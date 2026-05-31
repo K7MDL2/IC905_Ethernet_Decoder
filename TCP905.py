@@ -3,7 +3,7 @@
 #
 #  TCP905.py
 #
-#  v3  Feb 14, 2025 K7MDL
+#  v3.1  May 30, 2026 K7MDL
 #  IC-905 Ethernet Band Decoder
 #
 #  Uses tcpdump in a subprocess to filter and process sniffed packets
@@ -16,6 +16,8 @@
 #  Connect a managed switch with the control head and RF unit in a VLAN
 #  Enable port mirroring to a 3rd switch port.
 #  Plug in a Raspberry Pi 3B or 4B to the mirror port.
+#
+#  May 30, 2026 (ver 3.1) added PTT Pin Delay in msec
 #
 # ------------------------------------------------------------------------
 #
