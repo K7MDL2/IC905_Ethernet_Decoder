@@ -1385,7 +1385,7 @@ if __name__ == '__main__':
     io = OutputHandler()  # instantiate our classes
     bd = BandDecoder()
     mh = Message_handler()
-    print("TCP905 V3  - Ethernet Band Decoder for the IC-905 - K7MDL Feb 2025")
+    print("TCP905 V3.1  - Ethernet Band Decoder for the IC-905 - K7MDL May 30, 2026")
     tim = dtime.now()
     print("Startup at", tim.strftime("%m/%d/%Y %H:%M:%S%Z"), flush=True)
 
