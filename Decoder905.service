@@ -1,5 +1,5 @@
 [Unit]
-Description=IC905 band Decoder
+Description=IC905 Band Decoder
 After=default.target
 
 [Install]
