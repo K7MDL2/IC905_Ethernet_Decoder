@@ -798,7 +798,7 @@ class BandDecoder(): #OutputHandler):
                     # Found a band match, print out the goods
                     self.__offset = Freq_table[__band_name]['offset']
                     self.selected_vfo = __vfoa + self.__offset
-                    self.vfoa_band = (str)__band_name
+                    self.vfoa_band = str(__band_name)
 
                 if (__vfob >= Freq_table[__band_name]['lower_edge'] and
                     __vfob <= Freq_table[__band_name]['upper_edge'] ):
@@ -873,7 +873,7 @@ class BandDecoder(): #OutputHandler):
             return
 
         # watch for PTT value changes
-        if (self.vfoa_band != (str) ""):   # block PTT until we know what band we are on
+        if (self.vfoa_band != ""):   # block PTT until we know what band we are on
             #print("PTT called")
 
             if self.payload_ID != 0x0000:
