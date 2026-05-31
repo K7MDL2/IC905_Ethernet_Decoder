@@ -213,8 +213,7 @@ class OutputHandler:
             ptt_delay   = (int)(IO_table[i]['ptt_delay'])
             print("i=", format(i, '06b'), "band_pin:", band_pin, " ptt_pin:", ptt_pin, " ptt_delay:", ptt_delay)
             GPIO.setup(band_pin, GPIO.OUT, initial=band_invert)
-            GPIO.setup(ptt_pin,  GPIO.OUT, initial=ptt_invert)            
-        print("Initial default GPIO pin mode setup complete, read config file next if it exists.", flush=True)
+            GPIO.setup(ptt_pin,  GPIO.OUT, initial=ptt_invert)                    
 
 
     def ptt_io_output(self, band: str, ptt: int):
